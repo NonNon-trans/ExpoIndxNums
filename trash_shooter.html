@@ -173,6 +173,28 @@
       color: var(--muted);
       font-size: 16px;
       line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .title-award {
+      display: none;
+      margin: 18px 0 8px;
+      padding: 16px 18px;
+      border: 3px solid rgba(255, 207, 95, 0.85);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 207, 95, 0.2), rgba(71, 183, 200, 0.22), rgba(240, 167, 255, 0.18));
+      box-shadow: 0 0 28px rgba(255, 207, 95, 0.28), inset 0 0 18px rgba(255, 255, 255, 0.12);
+      color: #fff6c9;
+      font-weight: 1000;
+      font-size: clamp(26px, 5vw, 46px);
+      line-height: 1.15;
+      text-align: center;
+      text-shadow: 0 3px 0 #101312, 0 0 18px rgba(255, 207, 95, 0.8);
+      white-space: pre-line;
+    }
+
+    .title-award.show {
+      display: block;
     }
 
     .controls {
@@ -304,6 +326,7 @@
     <div class="menu">
       <h1>Trash Uprising Shooter</h1>
       <p class="lead" id="menuText">ちゃんと捨てられなかったゴミたちが結集し、街の路地から巨大なゴミの化け物として立ち上がった。方向キーで移動し、敵が背負った単語を正確にタイプして浄化ショットを撃ち込もう。</p>
+      <div class="title-award" id="titleAward"></div>
       <div class="controls">
         <button id="startBtn">ゲーム開始</button>
         <button class="secondary" id="practiceBtn">ステージ1から練習</button>
@@ -323,6 +346,7 @@
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const menuText = document.getElementById("menuText");
+    const titleAward = document.getElementById("titleAward");
     const startBtn = document.getElementById("startBtn");
     const practiceBtn = document.getElementById("practiceBtn");
     const easyBtn = document.getElementById("easyBtn");
@@ -358,6 +382,19 @@
       "地下道ビニール霧",
       "清掃センター前哨戦",
       "最終処分場の合体塊",
+    ];
+
+    const stageTitles = [
+      "見習い清掃員",
+      "地区清掃員",
+      "残飯処理班長",
+      "街角浄化士",
+      "分別マスター",
+      "リサイクル騎士",
+      "廃棄物ハンター",
+      "浄化執行官",
+      "清掃センター最終兵器",
+      "ゴミ界の破壊神",
     ];
 
     const phaseLabels = {
@@ -1273,6 +1310,11 @@
       });
     }
 
+    function setTitleAward(text = "") {
+      titleAward.textContent = text;
+      titleAward.classList.toggle("show", !!text);
+    }
+
     function showTitleMenu() {
       state.running = false;
       stopBgm();
@@ -1280,6 +1322,7 @@
       state.menuMode = "title";
       state.phase = "over";
       menuText.textContent = "難易度を選んでゲームを開始してください。方向キーで移動し、敵が背負った単語を正確にタイプして浄化ショットを撃ち込もう。";
+      setTitleAward("");
       setPrimaryButtonsVisible(false);
       setDifficultyButtonsVisible(true);
       updateStageList();
@@ -1364,6 +1407,7 @@
     }
 
     function startGame() {
+      setTitleAward("");
       setPrimaryButtonsVisible(true);
       setDifficultyButtonsVisible(false);
       overlay.classList.add("hidden");
@@ -1387,6 +1431,7 @@
       state.running = false;
       state.menuMode = "levelUp";
       menuText.textContent = `Lv ${state.playerLevel} に上がりました。伸ばす能力を選んでください。`;
+      setTitleAward("");
       setPrimaryButtonsVisible(true);
       setDifficultyButtonsVisible(false);
       startBtn.textContent = "攻撃力アップ";
@@ -1434,6 +1479,7 @@
       state.enemyBullets.length = 0;
       state.input = "";
       menuText.textContent = `Stage ${state.stage + 1}「${stageNames[state.stage]}」を浄化しました。ライフが少し回復しました。次のステージではゴミの集合体がさらに大きくなります。`;
+      setTitleAward("");
       startBtn.textContent = `Stage ${state.stage + 2}へ進む`;
       practiceBtn.textContent = "やめる";
       updateStageList();
@@ -1449,6 +1495,8 @@
       setPrimaryButtonsVisible(true);
       setDifficultyButtonsVisible(false);
       if (won) playSound("clear");
+      const titleIndex = won ? 9 : state.completed - 1;
+      setTitleAward(titleIndex >= 0 ? `「${stageTitles[titleIndex]}」\nの称号をゲット！！` : "");
       menuText.textContent = won
         ? `おめでとうございます‼️ 全10ステージを浄化しました。最終スコアは ${state.score.toLocaleString()} 点です。`
         : `街の浄化は途中で止まりました。到達ステージは ${state.stage + 1}、スコアは ${state.score.toLocaleString()} 点です。`;
