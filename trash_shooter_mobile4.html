@@ -201,23 +201,154 @@
       inferno: { label: "インフェルノ", rate: 3 },
     };
 
-    const words = [
-      ["ごみ", "ごみ"], ["本", "ほん"], ["分別", "ぶんべつ"], ["掃除", "そうじ"], ["資源", "しげん"],
-      ["缶", "かん"], ["紙", "かみ"], ["袋", "ふくろ"], ["瓶", "びん"], ["学校", "がっこう"],
-      ["大変", "たいへん"], ["忙しい", "いそがしい"], ["納豆", "なっとう"], ["ゴジラ", "ごじら"],
-      ["カツ丼", "かつどん"], ["鬼滅の刃", "きめつのやいば"], ["炭治郎", "たんじろう"],
-      ["かめ", "かめ"], ["さば", "さば"], ["自転車", "じてんしゃ"], ["食器", "しょっき"],
-      ["顕微鏡", "けんびきょう"], ["電子レンジ", "でんしれんじ"], ["たこ焼き", "たこやき"],
-      ["おかし", "おかし"], ["石", "いし"], ["設定", "せってい"], ["作務衣", "さむえ"],
-      ["価値観", "かちかん"], ["第一次世界大戦", "だいいちじせかいたいせん"], ["見よ、人がゴミのようだ", "みよ、ひとがごみのようだ"],
+        const words = [
+      { display: "ごみ", answers: ["gomi", "ごみ"] },
+      { display: "本", answers: ["hon", "ほん"] },
+      { display: "分別", answers: ["bunbetsu", "bunbetu", "ぶんべつ"] },
+      { display: "掃除", answers: ["souji", "soji", "souzi", "sozi", "そうじ"] },
+      { display: "資源", answers: ["shigen", "shigenn", "sigen", "sigenn", "しげん"] },
+      { display: "再生", answers: ["saisei", "さいせい"] },
+      { display: "缶", answers: ["kan", "かん"] },
+      { display: "紙", answers: ["kami", "かみ"] },
+      { display: "袋", answers: ["fukuro", "ふくろ"] },
+      { display: "瓶", answers: ["bin", "びん"] },
+      { display: "recycle", answers: ["recycle"] },
+      { display: "plastic", answers: ["plastic"] },
+      { display: "bottle", answers: ["bottle"] },
+      { display: "cleanup", answers: ["cleanup"] },
+      { display: "street", answers: ["street"] },
+      { display: "paper", answers: ["paper"] },
+      { display: "waste", answers: ["waste"] },
+      { display: "green", answers: ["green"] },
+      { display: "reuse", answers: ["reuse"] },
+      { display: "trash", answers: ["trash"] },
+      { display: "metal", answers: ["metal"] },
+      { display: "playball", answers: ["playball"] },
+      { display: "paypay", answers: ["paypay"] },
+      { display: "ごちそうさまでした", answers: ["gochisousamadeshita", "gotisousamadesita", "gochisousamadesita", "gotisousamadeshita", "ごちそうさまでした"] },
+      { display: "ティラノサウルス", answers: ["tiranosaurusu", "thiranosaurusu", "tyranosaurus", "てぃらのさうるす"] },
+      { display: "ドナルドトランプ", answers: ["donarudotoranpu", "donaldtrump", "どなるどとらんぷ"] },
+      { display: "タイピング楽しいな", answers: ["taipingutanoshiina", "typingtanoshii", "taipingutanosina", "たいぴんぐたのしいな"] },
+      { display: "tabletennis", answers: ["tabletennis"] },
+      { display: "spectrum", answers: ["spectrum"] },
+      { display: "あをによし", answers: ["awoniyoshi", "awoniyosi", "あをによし"] },
+      { display: "book", answers: ["book"] },
+      { display: "サテライトオフィス", answers: ["sateraitoofisu", "satelliteoffice", "さてらいとおふぃす"] },
+      { display: "任天堂", answers: ["nintendou", "nintendo", "にんてんどう"] },
+      { display: "switch", answers: ["switch"] },
+      { display: "角砂糖", answers: ["kakuzatou", "kakuzato", "かくざとう"] },
+      { display: "六甲おろし", answers: ["rokkouoroshi", "rokkooroshi", "rokkouorosi", "ろっこうおろし"] },
+      { display: "大根おろし", answers: ["daikonoroshi", "daikonorosi", "だいこんおろし"] },
+      { display: "渡る世間は鬼ばかり", answers: ["watarusekenhaonibakari", "watarusekenwaonibakari", "わたるせけんはおにばかり"] },
+      { display: "津軽海峡冬景色", answers: ["tsugarukaikyoufuyugeshiki", "tugarukaikyouhuyugesiki", "つがるかいきょうふゆげしき"] },
+      { display: "お財布", answers: ["osaifu", "おさいふ"] },
+      { display: "stainless", answers: ["stainless"] },
+      { display: "clarify", answers: ["clarify"] },
+      { display: "ライオン", answers: ["raion", "lion", "らいおん"] },
+      { display: "コアラ", answers: ["koara", "coala", "koala", "こあら"] },
+      { display: "アジト", answers: ["ajito", "azito", "あじと"] },
+      { display: "ペガサス", answers: ["pegasasu", "pegasus", "ぺがさす"] },
+      { display: "巻き舌", answers: ["makijita", "makizita", "まきじた"] },
+      { display: "カブトムシ", answers: ["kabutomushi", "kabutomusi", "かぶとむし"] },
+      { display: "pack", answers: ["pack"] },
+      { display: "benefit", answers: ["benefit"] },
+      { display: "wiseman", answers: ["wiseman"] },
+      { display: "people", answers: ["people"] },
+      { display: "detach", answers: ["detach"] },
+      { display: "absolute", answers: ["absolute"] },
+      { display: "investigate", answers: ["investigate"] },
+      { display: "stable", answers: ["stable"] },
+      { display: "sick", answers: ["sick"] },
+      { display: "lightning", answers: ["lightning"] },
+      { display: "later", answers: ["later"] },
+      { display: "commerce", answers: ["commerce"] },
+      { display: "launch", answers: ["launch"] },
+      { display: "laundry", answers: ["laundry"] },
+      { display: "garage", answers: ["garage"] },
+      { display: "stay", answers: ["stay"] },
+      { display: "eel", answers: ["eel"] },
+      { display: "count", answers: ["count"] },
+      { display: "custom", answers: ["custom"] },
+      { display: "question", answers: ["question"] },
+      { display: "page", answers: ["page"] },
+      { display: "rock", answers: ["rock"] },
+      { display: "together", answers: ["together"] },
+      { display: "personal", answers: ["personal"] },
+      { display: "individual", answers: ["individual"] },
+      { display: "aquarium", answers: ["aquarium"] },
+      { display: "infinity", answers: ["infinity"] },
+      { display: "avenge", answers: ["avenge"] },
+      { display: "independent", answers: ["independent"] },
+      { display: "exchange", answers: ["exchange"] },
+      { display: "advertise", answers: ["advertise"] },
+      { display: "industrial", answers: ["industrial"] },
+      { display: "vacation", answers: ["vacation"] },
+      { display: "against", answers: ["against"] },
+      { display: "honest", answers: ["honest"] },
+      { display: "foolish", answers: ["foolish"] },
+      { display: "anything", answers: ["anything"] },
+      { display: "sightseeing", answers: ["sightseeing"] },
+      { display: "similar", answers: ["similar"] },
+      { display: "planet", answers: ["planet"] },
+      { display: "eraser", answers: ["eraser"] },
+      { display: "opinion", answers: ["opinion"] },
+      { display: "notice", answers: ["notice"] },
+      { display: "motivation", answers: ["motivation"] },
+      { display: "garbage", answers: ["garbage"] },
+      { display: "definition", answers: ["definition"] },
+      { display: "マイケルジャクソン", answers: ["maikerujakuson", "maikerujakson", "まいけるじゃくそん"] },
+      { display: "学校", reading: "がっこう", answers: ["gakkou", "gakko", "がっこう"] },
+      { display: "大変", reading: "たいへん", answers: ["taihen", "たいへん"] },
+      { display: "忙しい", reading: "いそがしい", answers: ["isogashii", "isogasii", "いそがしい"] },
+      { display: "大晦日", reading: "おおみそか", answers: ["oomisoka", "ooomisoka", "おおみそか"] },
+      { display: "お花畑", reading: "おはなばたけ", answers: ["ohanabatake", "おはなばたけ"] },
+      { display: "ライス", answers: ["raisu", "rice", "らいす"] },
+      { display: "納豆", reading: "なっとう", answers: ["nattou", "natto", "なっとう"] },
+      { display: "ゴジラ", answers: ["gojira", "gozira", "ごじら"] },
+      { display: "カツ丼", reading: "かつどん", answers: ["katsudon", "katudon", "かつどん"] },
+      { display: "黒胡麻担々つけ麺", reading: "くろごまたんたんつけめん", answers: ["kurogomatantantsukemen", "kurogomatantantukemen", "くろごまたんたんつけめん"] },
+      { display: "鬼滅の刃", reading: "きめつのやいば", answers: ["kimetsunoyaiba", "kimetunoyaiba", "きめつのやいば"] },
+      { display: "炭治郎", reading: "たんじろう", answers: ["tanjirou", "tanjiro", "tanziro", "たんじろう"] },
+      { display: "ゼンイツ", answers: ["zenitsu", "zenitu", "ぜんいつ"] },
+      { display: "お前も鬼にならないか", reading: "おまえもおににならないか", answers: ["omaemoonininaranaika", "おまえもおににならないか"] },
+      { display: "かめ", answers: ["kame", "かめ"] },
+      { display: "さば", answers: ["saba", "さば"] },
+      { display: "自転車", reading: "じてんしゃ", answers: ["jitensha", "zitensya", "じてんしゃ"] },
+      { display: "乾燥機", reading: "かんそうき", answers: ["kansouki", "kansoki", "かんそうき"] },
+      { display: "食器", reading: "しょっき", answers: ["shokki", "syokki", "しょっき"] },
+      { display: "ピンセット", answers: ["pinsetto", "ぴんせっと"] },
+      { display: "スライドガラス", answers: ["suraidogurasu", "suraidogarasu", "suraidoglass", "slideglass", "すらいどがらす"] },
+      { display: "顕微鏡", reading: "けんびきょう", answers: ["kenbikyou", "kenbikyo", "けんびきょう"] },
+      { display: "電子レンジ", reading: "でんしれんじ", answers: ["denshirenji", "densirenzi", "でんしれんじ"] },
+      { display: "たこ焼き", reading: "たこやき", answers: ["takoyaki", "たこやき"] },
+      { display: "おかし", answers: ["okashi", "okasi", "おかし"] },
+      { display: "イタリアン", answers: ["itarian", "いたりあん"] },
+      { display: "クワガタムシ", answers: ["kuwagatamushi", "kuwagatamusi", "くわがたむし"] },
+      { display: "石", reading: "いし", answers: ["ishi", "isi", "いし"] },
+      { display: "オラ東京さいぐだ", reading: "おらとうきょうさいぐだ", answers: ["oratoukyousaiguda", "oratokyosaiguda", "おらとうきょうさいぐだ"] },
+      { display: "勝手にシンドバッド", reading: "かってにしんどばっど", answers: ["kattenishindobaddo", "kattenisindobaddo", "かってにしんどばっど"] },
+      { display: "勝手に金属バット", reading: "かってにきんぞくばっと", answers: ["kattenikinzokubatto", "かってにきんぞくばっと"] },
+      { display: "サンプル", answers: ["sanpuru", "さんぷる"] },
+      { display: "パラジウム", answers: ["parajiumu", "paraziumu", "ぱらじうむ"] },
+      { display: "設定", reading: "せってい", answers: ["settei", "せってい"] },
+      { display: "作務衣", reading: "さむえ", answers: ["samue", "さむえ"] },
+      { display: "価値観", reading: "かちかん", answers: ["kachikan", "katikan", "かちかん"] },
+      { display: "第一次世界大戦", reading: "だいいちじせかいたいせん", answers: ["daiichijisekaitaisen", "daiitizisekaitaisen", "だいいちじせかいたいせん"] },
+      { display: "見よ、人がゴミのようだ", reading: "みよ、ひとがごみのようだ", answers: ["miyo、hitogagominoyouda", "miyo,hitogagominoyouda", "miyohitogagominoyouda", "みよ、ひとがごみのようだ"] },
+      { display: "carrot", answers: ["carrot"] },
+      { display: "patriot", answers: ["patriot"] },
+      { display: "medicine", answers: ["medicine"] },
+      { display: "world", answers: ["world"] },
+      { display: "cartoon", answers: ["cartoon"] },
+      { display: "microwave", answers: ["microwave"] },
     ];
 
     const state = {
       w: 1, h: 1, ratio: 1, worldW: 2400, worldH: 2400, camera: { x: 0, y: 0, zoom: 0.75 }, running: false, mode: "title", stage: 0, difficulty: "normal",
-      player: { x: 1200, y: 1200, radius: 16, hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 90, attack: 18, defense: 1 },
+      player: { x: 1200, y: 1200, radius: 16, hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 120, attack: 12, attackRank: 0, defenseRank: 0, defenseMultiplier: 1 },
       input: "", combo: 0, score: 0, kills: 0, targetId: null, phase: "waves", phaseKills: 0, phaseGoal: 10,
       spawnTimer: 0, bossTimer: 0, damageSoundTimer: 0, time: 0, last: 0, drag: null, move: { x: 0, y: 0, speed: 150 }, enemies: [], bullets: [], particles: [], floaters: [],
-      laserAngle: -Math.PI / 2,
+      laserAngle: -Math.PI / 2, levelUpQueue: 0, killsSinceLevel: 0,
       radarRange: 420, shield: 0, pierce: 0, explosive: 0, omni: 0, freeze: 0, laser: 0, bounce: 0, vacuum: null,
     };
 
@@ -447,9 +578,13 @@
       state.player.hp = state.player.maxHp = 100;
       state.player.level = 1;
       state.player.exp = 0;
-      state.player.nextExp = 90;
-      state.player.attack = 18;
-      state.player.defense = 1;
+      state.player.nextExp = 120;
+      state.player.attack = 12;
+      state.player.attackRank = 0;
+      state.player.defenseRank = 0;
+      state.player.defenseMultiplier = 1;
+      state.levelUpQueue = 0;
+      state.killsSinceLevel = 0;
       state.player.radius = 16;
       state.player.x = state.worldW / 2;
       state.player.y = state.worldH / 2;
@@ -485,16 +620,20 @@
     }
 
     function pickWord() {
-      const [display, answer] = words[Math.floor(rand(0, words.length))];
-      return { display, answer };
+      const entry = words[Math.floor(rand(0, words.length))];
+      const answers = [...new Set((entry.answers || [entry.reading || entry.display]).filter(Boolean))];
+      const answer = entry.reading || answers.find((value) => /[ぁ-んァ-ン一-龯]/.test(value)) || answers[0] || entry.display;
+      return { display: entry.display, reading: entry.reading || "", answer, answers };
     }
 
     function assignNewWord(enemy) {
       if (!enemy) return;
       let next = pickWord();
-      for (let i = 0; i < 8 && next.answer === enemy.answer; i++) next = pickWord();
+      for (let i = 0; i < 8 && next.display === enemy.word; i++) next = pickWord();
       enemy.word = next.display;
+      enemy.reading = next.reading;
       enemy.answer = next.answer;
+      enemy.answers = next.answers;
     }
 
     function spawnEnemy(type = "minion") {
@@ -509,7 +648,7 @@
       const word = pickWord();
       const enemy = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()),
-        type, x, y, vx: 0, vy: 0, radius: boss ? 44 : rand(14, 22), word: word.display, answer: word.answer,
+        type, x, y, vx: 0, vy: 0, radius: boss ? 44 : rand(14, 22), word: word.display, reading: word.reading, answer: word.answer, answers: word.answers,
         hp: (boss ? 210 : 16) * stage * rate(),
         maxHp: (boss ? 210 : 16) * stage * rate(),
         attack: (boss ? 13 : 8) * stage * rate(),
@@ -533,23 +672,28 @@
     }
 
     function awardExp(enemy) {
-      const exp = Math.round((enemy.answer.length * 4 + 12) * (enemy.type === "boss" ? 2.4 : 1));
+      const answerLength = Math.max(3, (enemy.answer || enemy.word || "").length);
+      const exp = Math.round((answerLength * 5 + 8) * (enemy.type === "boss" ? 2.2 : 1) * 1.15);
       state.player.exp += exp;
       floater(state.player.x, state.player.y - 58, `EXP +${exp}`, "#f5b84b");
-      while (state.player.exp >= state.player.nextExp) {
+      while (state.player.exp >= state.player.nextExp && state.killsSinceLevel >= 3) {
         state.player.exp -= state.player.nextExp;
+        state.killsSinceLevel = Math.max(0, state.killsSinceLevel - 3);
         state.player.level += 1;
-        state.player.nextExp = Math.round(state.player.nextExp * 1.38 + 42);
-        state.player.maxHp *= 1.16;
+        state.levelUpQueue += 1;
+        state.player.nextExp = Math.round(state.player.nextExp * 1.42 + 45 + state.player.level * 12);
+        state.player.maxHp *= 1.2;
+        state.player.defenseMultiplier *= 1.2;
         state.player.hp = clamp(state.player.hp + state.player.maxHp * 0.3, 0, state.player.maxHp);
-        state.player.attack *= 1.13;
-        sfx("item");
+        playSound("heal");
       }
+      if (state.levelUpQueue > 0 && state.running) showLevelUp();
     }
 
     function killEnemy(enemy, reason = "浄化") {
       state.phaseKills += enemy.type === "boss" || state.phase === "waves" ? 1 : 0;
       state.kills += 1;
+      state.killsSinceLevel += 1;
       state.score += enemy.value;
       awardExp(enemy);
       floater(enemy.x, enemy.y - enemy.radius, reason, enemy.type === "boss" ? "#f5b84b" : "#8fd14f");
@@ -610,12 +754,12 @@
 
     function nearestMatchingEnemy() {
       const typed = normalize(state.input);
-      return state.enemies.find((enemy) => normalize(enemy.answer) === typed);
+      return state.enemies.find((enemy) => (enemy.answers || [enemy.answer]).some((answer) => normalize(answer) === typed));
     }
 
     function hasPrefix(text = state.input) {
       const typed = normalize(text);
-      return typed === "" || state.enemies.some((enemy) => normalize(enemy.answer).startsWith(typed));
+      return typed === "" || state.enemies.some((enemy) => (enemy.answers || [enemy.answer]).some((answer) => normalize(answer).startsWith(typed)));
     }
 
     function clearTypedInput() {
@@ -647,7 +791,7 @@
 
     function fireAt(enemy) {
       const comboMultiplier = Math.pow(1.2, state.combo);
-      const power = state.player.attack * comboMultiplier * (state.explosive > 0 ? 4 : state.pierce > 0 ? 2.6 : 1);
+      const power = state.player.attack * Math.pow(1.4, state.player.attackRank) * comboMultiplier * (state.explosive > 0 ? 4 : state.pierce > 0 ? 2.6 : 1);
       addShotTrail(enemy, state.explosive > 0 ? "#ffcf5f" : state.pierce > 0 ? "#7ee7ff" : "#f5f7ef");
       damageEnemy(enemy, power);
       if (state.enemies.includes(enemy) && enemy.hp > 0) assignNewWord(enemy);
@@ -747,7 +891,7 @@
       const forward = dx * Math.cos(state.laserAngle) + dy * Math.sin(state.laserAngle);
       if (forward < 0 || forward > state.radarRange) return false;
       const side = Math.abs(dx * Math.sin(state.laserAngle) - dy * Math.cos(state.laserAngle));
-      return side <= enemy.radius + 14;
+      return side <= enemy.radius + 38;
     }
 
     function update(dt) {
@@ -784,7 +928,7 @@
         enemy.y = clamp(enemy.y, enemy.radius, state.worldH - enemy.radius);
         if (dist(enemy, state.player) < enemy.radius + state.player.radius) {
           if (state.shield <= 0 && state.laser <= 0) {
-            state.player.hp -= enemy.attack * dt;
+            state.player.hp -= (enemy.attack * dt) / state.player.defenseMultiplier;
             if (state.damageSoundTimer <= 0) {
               sfx("damage");
               state.damageSoundTimer = 0.28;
@@ -798,7 +942,9 @@
       }
       if (state.laser > 0) {
         state.enemies.filter(laserHitsEnemy).forEach((enemy) => {
-          enemy.hp -= state.player.attack * dt * (enemy.type === "boss" ? 0.55 : 0.95);
+          const laserDamage = state.player.attack * Math.pow(1.4, state.player.attackRank) * Math.pow(1.2, state.combo) * dt * (enemy.type === "boss" ? 1.5 : 3.2);
+          enemy.hp -= laserDamage;
+          for (let i = 0; i < 2; i++) addParticle(enemy.x, enemy.y, "#7ee7ff", rand(30, 120), rand(0.12, 0.28), rand(2, 5));
           if (enemy.hp <= 0) killEnemy(enemy, "レーザー");
         });
       }
@@ -841,6 +987,38 @@
         ["次のステージ", () => { overlay.classList.add("hidden"); state.running = true; startStage(state.stage + 1); inputBox.focus(); }],
         ["メニュー", showTitle, true],
       ]);
+    }
+
+    function showLevelUp() {
+      state.running = false;
+      state.mode = "levelUp";
+      stopBgm();
+      playSound("clear");
+      setMenu(`Lv ${state.player.level} に上がりました。`, [
+        ["攻撃力アップ", () => chooseLevelBonus("attack")],
+        ["防御力アップ", () => chooseLevelBonus("defense"), true],
+      ]);
+    }
+
+    function chooseLevelBonus(kind) {
+      if (kind === "attack") {
+        state.player.attackRank += 1;
+        floater(state.player.x, state.player.y - 72, "攻撃力アップ", "#f5b84b");
+      } else {
+        state.player.defenseRank += 1;
+        state.player.defenseMultiplier *= 2;
+        floater(state.player.x, state.player.y - 72, "防御力アップ", "#47b7c8");
+      }
+      state.levelUpQueue = Math.max(0, state.levelUpQueue - 1);
+      if (state.levelUpQueue > 0) {
+        showLevelUp();
+        return;
+      }
+      overlay.classList.add("hidden");
+      state.mode = "play";
+      state.running = true;
+      startBgm(state.phase === "boss" ? "boss" : "normal");
+      inputBox.focus();
     }
 
     function endGame(won) {
@@ -965,7 +1143,7 @@
       ctx.fillText(enemy.word, ex, ey + er + screenSize(20));
       ctx.font = `800 ${screenSize(12)}px system-ui`;
       ctx.fillStyle = "#b8c3b0";
-      ctx.fillText(enemy.answer, ex, ey + er + screenSize(36));
+      ctx.fillText(enemy.reading || enemy.answer, ex, ey + er + screenSize(36));
     }
 
     function drawPlayer() {
