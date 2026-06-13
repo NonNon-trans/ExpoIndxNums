@@ -167,7 +167,7 @@
   </div>
 
   <input class="inputBox" id="inputBox" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ここをタップして入力" />
-  <button class="pauseButton" id="pauseButton">停止</button>
+  <button class="pauseButton" id="pauseButton">MENU</button>
   <div class="versionBadge">キーボード版 v2</div>
 
   <div class="overlay" id="overlay">
@@ -485,6 +485,14 @@
       return { display, answer };
     }
 
+    function assignNewWord(enemy) {
+      if (!enemy) return;
+      let next = pickWord();
+      for (let i = 0; i < 8 && next.answer === enemy.answer; i++) next = pickWord();
+      enemy.word = next.display;
+      enemy.answer = next.answer;
+    }
+
     function spawnEnemy(type = "minion") {
       const angle = rand(0, Math.PI * 2);
       const spawnDistance = rand(Math.min(state.radarRange * 0.92, 390), Math.min(state.radarRange * 1.28, 540));
@@ -587,13 +595,18 @@
       return typed === "" || state.enemies.some((enemy) => normalize(enemy.answer).startsWith(typed));
     }
 
-    function processTypedInput(previous = "") {
+    function clearTypedInput() {
+      state.input = "";
+      inputBox.value = "";
+    }
+
+    function processTypedInput() {
       if (!state.running) return;
       const enemy = nearestMatchingEnemy();
       if (enemy) {
-        state.input = "";
-        inputBox.value = "";
+        clearTypedInput();
         state.combo += 1;
+        if (state.combo >= 2) floater(state.player.x, state.player.y - 78, `${state.combo}コンボ!`, "#f5b84b");
         state.targetId = enemy.id;
         fireAt(enemy);
         sfx("shot");
@@ -602,8 +615,7 @@
       if (hasPrefix()) {
         sfx("ok");
       } else {
-        state.input = previous;
-        inputBox.value = previous;
+        clearTypedInput();
         state.combo = 0;
         sfx("miss");
         floater(state.player.x, state.player.y - 55, "ミス", "#ff6b5f");
@@ -611,11 +623,31 @@
     }
 
     function fireAt(enemy) {
-      const power = state.player.attack * (state.explosive > 0 ? 4 : state.pierce > 0 ? 2.6 : 1);
+      const comboMultiplier = Math.pow(1.2, state.combo);
+      const power = state.player.attack * comboMultiplier * (state.explosive > 0 ? 4 : state.pierce > 0 ? 2.6 : 1);
+      addShotTrail(enemy, state.explosive > 0 ? "#ffcf5f" : state.pierce > 0 ? "#7ee7ff" : "#f5f7ef");
       damageEnemy(enemy, power);
+      if (state.enemies.includes(enemy) && enemy.hp > 0) assignNewWord(enemy);
       if (state.omni > 0) {
-        state.enemies.filter((target) => target !== enemy && dist(target, state.player) <= state.radarRange).slice(0, 8).forEach((target) => damageEnemy(target, state.player.attack * 0.7));
+        state.enemies.filter((target) => target !== enemy && dist(target, state.player) <= state.radarRange).slice(0, 8).forEach((target) => {
+          addShotTrail(target, "#8fd14f", 0.24);
+          damageEnemy(target, state.player.attack * 0.7);
+          if (state.enemies.includes(target) && target.hp > 0) assignNewWord(target);
+        });
       }
+    }
+
+    function addShotTrail(enemy, color = "#f5f7ef", life = 0.2) {
+      if (!enemy) return;
+      state.bullets.push({
+        x1: state.player.x,
+        y1: state.player.y,
+        x2: enemy.x,
+        y2: enemy.y,
+        color,
+        life,
+        maxLife: life,
+      });
     }
 
     function damageEnemy(enemy, damage, bounceLeft = state.bounce > 0 ? 2 : 0) {
@@ -628,7 +660,18 @@
       if (enemy.hp <= 0) killEnemy(enemy);
       if (state.bounce > 0 && bounceLeft > 0) {
         const next = state.enemies.filter((target) => target !== enemy && dist(target, enemy) <= state.radarRange).sort((a, b) => dist(a, enemy) - dist(b, enemy))[0];
-        if (next) damageEnemy(next, damage * 0.55, bounceLeft - 1);
+        if (next) {
+          state.bullets.push({
+            x1: enemy.x,
+            y1: enemy.y,
+            x2: next.x,
+            y2: next.y,
+            color: "#ffcf5f",
+            life: 0.18,
+            maxLife: 0.18,
+          });
+          damageEnemy(next, damage * 0.55, bounceLeft - 1);
+        }
       }
     }
 
@@ -703,6 +746,8 @@
       }
       state.particles.forEach((p) => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
       state.particles = state.particles.filter((p) => p.life > 0);
+      state.bullets.forEach((b) => { b.life -= dt; });
+      state.bullets = state.bullets.filter((b) => b.life > 0);
       state.floaters.forEach((f) => { f.y -= 42 * dt; f.life -= dt; });
       state.floaters = state.floaters.filter((f) => f.life > 0);
       state.damageSoundTimer = Math.max(0, state.damageSoundTimer - dt);
@@ -858,6 +903,35 @@
     }
 
     function drawEffects() {
+      for (const bullet of state.bullets) {
+        const t = clamp(bullet.life / bullet.maxLife, 0, 1);
+        const sx = screenX(bullet.x1);
+        const sy = screenY(bullet.y1);
+        const ex = screenX(bullet.x2);
+        const ey = screenY(bullet.y2);
+        const headX = ex + (sx - ex) * t;
+        const headY = ey + (sy - ey) * t;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.25 + 0.75 * t;
+        ctx.strokeStyle = bullet.color;
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(headX, headY);
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(headX, headY);
+        ctx.stroke();
+        ctx.fillStyle = bullet.color;
+        ctx.beginPath();
+        ctx.arc(headX, headY, 5 + 3 * t, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       if (state.vacuum) {
         const v = state.vacuum;
         const vx = screenX(v.x);
@@ -935,14 +1009,14 @@
       if (state.mode !== "play") return;
       state.running = false;
       stopBgm();
-      setMenu("一時停止中です。用事が済んだら再開しましょう。", [
-        ["再開", () => {
+      setMenu("", [
+        ["コンティニュー", () => {
           overlay.classList.add("hidden");
           state.running = true;
           startBgm(state.phase === "boss" ? "boss" : "normal");
           inputBox.focus();
         }],
-        ["メニュー", showTitle, true],
+        ["メインメニュー", showTitle, true],
       ]);
     }
 
@@ -952,28 +1026,29 @@
     inputBox.addEventListener("compositionstart", () => { composing = true; });
     inputBox.addEventListener("compositionend", () => {
       composing = false;
-      const previous = state.input;
       state.input = inputBox.value;
-      processTypedInput(previous);
+      processTypedInput();
     });
     inputBox.addEventListener("input", () => {
       if (composing) {
         state.input = inputBox.value;
         return;
       }
-      const previous = state.input;
       state.input = inputBox.value;
-      processTypedInput(previous);
+      processTypedInput();
     });
     inputBox.addEventListener("keydown", (event) => {
       if (event.key === "Escape") showPauseMenu();
       if (event.key === "Enter") {
         const enemy = nearestMatchingEnemy();
         if (enemy) {
-          state.input = "";
-          inputBox.value = "";
+          clearTypedInput();
+          state.combo += 1;
+          if (state.combo >= 2) floater(state.player.x, state.player.y - 78, `${state.combo}コンボ!`, "#f5b84b");
           fireAt(enemy);
         } else {
+          clearTypedInput();
+          state.combo = 0;
           sfx("miss");
         }
       }
