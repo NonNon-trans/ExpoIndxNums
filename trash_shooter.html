@@ -2742,6 +2742,61 @@
       ctx.restore();
     }
 
+    function canvasUIFont(weight, size) {
+      return `${weight} ${size}px system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif`;
+    }
+
+    function drawFittedCenteredText(text, x, y, maxWidth, size, weight = 900, minSize = 14) {
+      let fittedSize = size;
+      ctx.font = canvasUIFont(weight, fittedSize);
+      const width = ctx.measureText(text).width;
+      if (width > maxWidth) fittedSize = Math.max(minSize, Math.floor(fittedSize * maxWidth / width));
+      ctx.font = canvasUIFont(weight, fittedSize);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x, y);
+      return fittedSize;
+    }
+
+    function drawRescueIntroTitle(x, y, maxWidth) {
+      const title = "起死回生のチャンス";
+      const bang = "!!";
+      let size = 52;
+      const gap = 8;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.font = canvasUIFont(900, size);
+      let totalWidth = ctx.measureText(title).width + gap + ctx.measureText(bang).width;
+      if (totalWidth > maxWidth) size = Math.max(34, Math.floor(size * maxWidth / totalWidth));
+      ctx.font = canvasUIFont(900, size);
+      const titleWidth = ctx.measureText(title).width;
+      const bangWidth = ctx.measureText(bang).width;
+      const startX = x - (titleWidth + gap + bangWidth) / 2;
+      ctx.fillStyle = "#ffebe8";
+      ctx.fillText(title, startX, y);
+      ctx.fillStyle = "#ff3f20";
+      ctx.fillText(bang, startX + titleWidth + gap, y);
+    }
+
+    function drawRescueBangLine(text, x, y, maxWidth, size = 21) {
+      const bang = "!!";
+      let fittedSize = size;
+      const gap = 6;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
+      ctx.font = canvasUIFont(800, fittedSize);
+      let totalWidth = ctx.measureText(text).width + gap + ctx.measureText(bang).width;
+      if (totalWidth > maxWidth) fittedSize = Math.max(15, Math.floor(fittedSize * maxWidth / totalWidth));
+      ctx.font = canvasUIFont(800, fittedSize);
+      const textWidth = ctx.measureText(text).width;
+      const bangWidth = ctx.measureText(bang).width;
+      const startX = x - (textWidth + gap + bangWidth) / 2;
+      ctx.fillStyle = "#f5f7ef";
+      ctx.fillText(text, startX, y);
+      ctx.fillStyle = "#ff3f20";
+      ctx.fillText(bang, startX + textWidth + gap, y);
+    }
+
     function drawRescueOverlay() {
       if (!state.rescue) return;
       ctx.save();
@@ -2752,6 +2807,7 @@
         const panelX = (state.w - panelW) / 2;
         const panelH = Math.min(520, state.h - 120);
         const panelY = (state.h - panelH) / 2;
+        const centerX = panelX + panelW / 2;
         ctx.fillStyle = "rgba(13, 18, 17, 0.96)";
         ctx.strokeStyle = "#f5b84b";
         ctx.lineWidth = 4;
@@ -2761,23 +2817,16 @@
         ctx.stroke();
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = "#ffebe8";
-        ctx.font = "900 58px system-ui";
-        ctx.fillText("起死回生のチャンス‼️", state.w / 2, panelY + 88);
+        drawRescueIntroTitle(centerX, panelY + 88, panelW - 92);
         ctx.fillStyle = "#f5f7ef";
-        ctx.font = "800 21px system-ui";
-        const lines = [
-          "これから表示されることばを間違えずに入力できたら今いる敵を全滅できるよ👌",
-          "5回タイプミスしたらアウト🙅‍♂️",
-          "挑戦ボタンを押してスタート‼️",
-        ];
-        lines.forEach((line, i) => ctx.fillText(line, state.w / 2, panelY + 170 + i * 38));
+        drawFittedCenteredText("これから表示されることばを間違えずに入力できたら今いる敵を全滅できるよ👌", centerX, panelY + 170, panelW - 112, 21, 800, 15);
+        drawFittedCenteredText("5回タイプミスしたらアウト", centerX, panelY + 208, panelW - 112, 21, 800, 15);
+        drawRescueBangLine("挑戦ボタンを押してスタート", centerX, panelY + 246, panelW - 112, 21);
         ctx.fillStyle = "#b8c3b0";
-        ctx.font = "800 18px system-ui";
-        ctx.fillText(`自動開始まで ${Math.max(0, Math.ceil(state.rescue.introTimer))} 秒`, state.w / 2, panelY + 306);
+        drawFittedCenteredText(`自動開始まで ${Math.max(0, Math.ceil(state.rescue.introTimer))} 秒`, centerX, panelY + 306, panelW - 112, 18, 800, 14);
         const buttonW = 210;
         const buttonH = 54;
-        const buttonX = state.w / 2 - buttonW / 2;
+        const buttonX = centerX - buttonW / 2;
         const buttonY = panelY + panelH - 98;
         state.rescue.button = { x: buttonX, y: buttonY, w: buttonW, h: buttonH };
         ctx.fillStyle = "#e8f5d4";
@@ -2788,8 +2837,7 @@
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#10140d";
-        ctx.font = "900 22px system-ui";
-        ctx.fillText("挑戦する", state.w / 2, buttonY + buttonH / 2);
+        drawFittedCenteredText("挑戦する", centerX, buttonY + buttonH / 2, buttonW - 34, 22, 900, 16);
         ctx.restore();
         return;
       }
