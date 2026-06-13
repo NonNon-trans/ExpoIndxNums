@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Trash Uprising Shooter Mobile</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101312;
+      --panel: rgba(14, 18, 17, 0.76);
+      --text: #f5f7ef;
+      --muted: #aab5aa;
+      --green: #8fd14f;
+      --cyan: #47b7c8;
+      --gold: #f5b84b;
+      --red: #ff6b5f;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; touch-action: manipulation; }
+    canvas { display: block; width: 100vw; height: 100vh; background: radial-gradient(circle at 50% 20%, #24302a, #101312 58%, #080909); touch-action: none; }
+
+    .hud {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 6px);
+      right: 8px;
+      left: 136px;
+      display: grid;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 48px 54px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .pill, .meter {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 6px 8px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      backdrop-filter: blur(8px);
+    }
+
+    .stage { font-weight: 900; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill { font-size: 11px; color: var(--muted); overflow: hidden; }
+    .pill strong { color: var(--text); display: block; font-size: 14px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meter { height: 9px; padding: 0; overflow: hidden; }
+    .fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .fill.hp { background: linear-gradient(90deg, #ff6b5f, #f5b84b); }
+
+    .inputBox {
+      position: fixed;
+      left: 50%;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      min-width: 260px;
+      max-width: calc(100vw - 24px);
+      text-align: center;
+      background: rgba(8, 10, 10, 0.72);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      z-index: 3;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .inputBox:focus {
+      border-color: rgba(245,184,75,0.72);
+      box-shadow: 0 0 0 3px rgba(245,184,75,0.18), 0 10px 24px rgba(0,0,0,0.22);
+    }
+
+    .pauseButton {
+      position: fixed;
+      right: 10px;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      z-index: 5;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px;
+      min-width: 64px;
+      min-height: 42px;
+      background: rgba(20, 26, 24, 0.88);
+      color: var(--text);
+      font-weight: 900;
+      font-size: 14px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.24);
+    }
+
+    .versionBadge {
+      position: fixed;
+      left: 10px;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      z-index: 5;
+      background: rgba(8, 10, 10, 0.72);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      pointer-events: none;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 10;
+      background: rgba(6, 8, 8, 0.76);
+      padding: 20px;
+    }
+
+    .overlay.hidden { display: none; }
+    .menu {
+      width: min(560px, 100%);
+      background: rgba(14, 18, 17, 0.92);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.38);
+    }
+
+    h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.05; }
+    .lead { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0 0 16px; }
+    .buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .buttons button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 48px;
+      color: #101312;
+      background: var(--green);
+      font-weight: 900;
+      font-size: 15px;
+    }
+    .buttons button.secondary { background: #d4ded2; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="row">
+      <div class="pill stage" id="stageLabel">Stage 1 / ノーマル</div>
+      <div class="pill">Lv<strong id="levelLabel">1</strong></div>
+      <div class="pill">連鎖<strong id="comboLabel">0</strong></div>
+    </div>
+    <div class="meter"><div class="fill hp" id="hpFill"></div></div>
+    <div class="row">
+      <div class="pill">強化<strong id="powerLabel">なし</strong></div>
+      <div class="pill">敵<strong id="enemyLabel">0</strong></div>
+      <div class="pill">経験<strong id="expLabel">0%</strong></div>
+    </div>
+  </div>
+
+  <input class="inputBox" id="inputBox" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ここをタップして入力" />
+  <button class="pauseButton" id="pauseButton">MENU</button>
+  <div class="versionBadge">キーボード版 v2</div>
+
+  <div class="overlay" id="overlay">
+    <div class="menu">
+      <h1>Trash Uprising Shooter Mobile</h1>
+      <p class="lead" id="menuText">難易度を選んで、スマホのキーボード入力でゴミの化け物を浄化しましょう。画面をドラッグするとプレイヤーが移動します。</p>
+      <div class="buttons" id="menuButtons"></div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const menuText = document.getElementById("menuText");
+    const menuButtons = document.getElementById("menuButtons");
+    const inputBox = document.getElementById("inputBox");
+    const stageLabel = document.getElementById("stageLabel");
+    const levelLabel = document.getElementById("levelLabel");
+    const comboLabel = document.getElementById("comboLabel");
+    const hpFill = document.getElementById("hpFill");
+    const powerLabel = document.getElementById("powerLabel");
+    const enemyLabel = document.getElementById("enemyLabel");
+    const expLabel = document.getElementById("expLabel");
+
+    const stageNames = ["路地裏", "公園", "駅前", "商店街", "川沿い", "夜市", "埠頭", "地下道", "清掃センター", "最終処分場"];
+    const difficulties = {
+      easy: { label: "イージー", rate: 0.5 },
+      normal: { label: "ノーマル", rate: 1 },
+      hard: { label: "ハード", rate: 2 },
+      inferno: { label: "インフェルノ", rate: 3 },
+    };
+
+    const words = [
+      ["ごみ", "ごみ"], ["本", "ほん"], ["分別", "ぶんべつ"], ["掃除", "そうじ"], ["資源", "しげん"],
+      ["缶", "かん"], ["紙", "かみ"], ["袋", "ふくろ"], ["瓶", "びん"], ["学校", "がっこう"],
+      ["大変", "たいへん"], ["忙しい", "いそがしい"], ["納豆", "なっとう"], ["ゴジラ", "ごじら"],
+      ["カツ丼", "かつどん"], ["鬼滅の刃", "きめつのやいば"], ["炭治郎", "たんじろう"],
+      ["かめ", "かめ"], ["さば", "さば"], ["自転車", "じてんしゃ"], ["食器", "しょっき"],
+      ["顕微鏡", "けんびきょう"], ["電子レンジ", "でんしれんじ"], ["たこ焼き", "たこやき"],
+      ["おかし", "おかし"], ["石", "いし"], ["設定", "せってい"], ["作務衣", "さむえ"],
+      ["価値観", "かちかん"], ["第一次世界大戦", "だいいちじせかいたいせん"], ["見よ、人がゴミのようだ", "みよ、ひとがごみのようだ"],
+    ];
+
+    const state = {
+      w: 1, h: 1, ratio: 1, worldW: 2400, worldH: 2400, camera: { x: 0, y: 0, zoom: 0.75 }, running: false, mode: "title", stage: 0, difficulty: "normal",
+      player: { x: 1200, y: 1200, radius: 16, hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 90, attack: 18, defense: 1 },
+      input: "", combo: 0, score: 0, kills: 0, targetId: null, phase: "waves", phaseKills: 0, phaseGoal: 10,
+      spawnTimer: 0, bossTimer: 0, damageSoundTimer: 0, time: 0, last: 0, drag: null, move: { x: 0, y: 0, speed: 150 }, enemies: [], bullets: [], particles: [], floaters: [],
+      laserAngle: -Math.PI / 2,
+      radarRange: 420, shield: 0, pierce: 0, explosive: 0, omni: 0, freeze: 0, laser: 0, bounce: 0, vacuum: null,
+    };
+
+    let audioCtx = null;
+    let bgmTimer = null;
+    let bgmMode = "normal";
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const rate = () => difficulties[state.difficulty].rate;
+    const screenX = (x) => (x - state.camera.x) * state.camera.zoom;
+    const screenY = (y) => (y - state.camera.y) * state.camera.zoom;
+    const screenSize = (v) => v * state.camera.zoom;
+
+    function getAudio() {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function beep(freq, duration, type = "sine", vol = 0.05, delay = 0) {
+      try {
+        const a = getAudio();
+        const o = a.createOscillator();
+        const g = a.createGain();
+        const t = a.currentTime + delay;
+        o.type = type;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        o.connect(g).connect(a.destination);
+        o.start(t);
+        o.stop(t + duration + 0.02);
+      } catch {}
+    }
+
+    function harmonicaNote(freq, duration, volume = 0.026, delay = 0) {
+      beep(freq, duration, "triangle", volume, delay);
+      beep(freq * 2.01, duration * 0.88, "sine", volume * 0.34, delay + 0.012);
+      beep(freq * 3.02, duration * 0.62, "sine", volume * 0.12, delay + 0.02);
+      beep(freq * 0.995, duration * 0.76, "triangle", volume * 0.16, delay + 0.026);
+    }
+
+    function playFallbackTypeMiss() {
+      beep(392, 0.12, "sine", 0.06);
+      beep(294, 0.18, "triangle", 0.052, 0.08);
+      beep(196, 0.22, "sine", 0.044, 0.2);
+    }
+
+    function playFunnyTypeMiss() {
+      try {
+        const audio = new Audio("mistype_funny_1.mp3");
+        audio.volume = 0.88;
+        audio.playbackRate = 1.08;
+        const started = audio.play();
+        if (started?.catch) started.catch(() => playFallbackTypeMiss());
+        setTimeout(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }, 600);
+        return !!started;
+      } catch {
+        return false;
+      }
+    }
+
+    function playSound(kind, pitch = 1) {
+      try {
+        if (kind === "shoot") {
+          beep(740, 0.075, "square", 0.035);
+          beep(1180, 0.055, "triangle", 0.03, 0.025);
+        } else if (kind === "hit") {
+          beep(210 * pitch, 0.08, "sawtooth", 0.055);
+          beep(150 * pitch, 0.06, "square", 0.035, 0.04);
+        } else if (kind === "pierceHit") {
+          beep(95 * pitch, 0.12, "sawtooth", 0.075);
+          beep(310 * pitch, 0.08, "square", 0.065, 0.025);
+          beep(520 * pitch, 0.06, "sawtooth", 0.045, 0.055);
+        } else if (kind === "powerup") {
+          beep(988, 0.06, "square", 0.055);
+          beep(1318, 0.08, "square", 0.045, 0.06);
+        } else if (kind === "damage") {
+          beep(82, 0.16, "sawtooth", 0.085);
+          beep(61, 0.12, "square", 0.06, 0.035);
+          beep(180, 0.05, "sawtooth", 0.04, 0.08);
+        } else if (kind === "heal") {
+          beep(523, 0.08, "sine", 0.045);
+          beep(659, 0.1, "triangle", 0.05, 0.08);
+          beep(784, 0.14, "sine", 0.045, 0.18);
+        } else if (kind === "explode") {
+          beep(70, 0.22, "sawtooth", 0.095);
+          beep(120, 0.16, "square", 0.075, 0.05);
+          beep(260, 0.08, "sawtooth", 0.05, 0.12);
+        } else if (kind === "clear") {
+          beep(523, 0.11, "triangle", 0.075);
+          beep(659, 0.11, "triangle", 0.075, 0.11);
+          beep(784, 0.26, "triangle", 0.085, 0.22);
+          beep(1046, 0.32, "sine", 0.055, 0.24);
+          beep(392, 0.38, "triangle", 0.04, 0.28);
+        } else if (kind === "typeGood") {
+          beep(980, 0.035, "square", 0.032);
+          beep(1568, 0.045, "triangle", 0.034, 0.018);
+          beep(420, 0.028, "sawtooth", 0.018, 0.01);
+        } else if (kind === "typeMiss") {
+          if (!playFunnyTypeMiss()) playFallbackTypeMiss();
+        }
+      } catch {}
+    }
+
+    function sfx(type) {
+      const map = { ok: "typeGood", miss: "typeMiss", shot: "shoot", hit: "hit", item: "powerup", clear: "clear", damage: "damage", explode: "explode" };
+      playSound(map[type] || type);
+    }
+
+    const noteFreqs = {
+      g3: 196, a3: 220, b3: 247, c4: 262, d4: 294, e4: 330, fs4: 370, g4: 392, a4: 440, b4: 494, c5: 523, d5: 587,
+    };
+
+    function playLoopNote(note, beat, step, volume = 0.026) {
+      if (!note) return;
+      const freq = noteFreqs[note] || note;
+      harmonicaNote(freq, beat * 0.9, volume, step);
+    }
+
+    function playNormalBgmPattern() {
+      const beat = 0.18;
+      const melody = [
+        ["b4", 1], ["g4", 1], ["d4", 1], ["g4", 1], ["a4", 0.55], ["d5", 0.95],
+        [null, 1], ["d4", 0.8], ["a4", 1], ["b4", 1], ["a4", 1], ["d4", 1], ["g4", 1.7],
+      ];
+      let time = 0.03;
+      melody.forEach(([note, length]) => {
+        playLoopNote(note, beat * length, time, 0.033);
+        if (note) harmonicaNote((noteFreqs[note] || note) / 2, beat * length * 0.58, 0.01, time + 0.02);
+        time += beat * length;
+      });
+      ["g3", "g3", "d4", "g3", "e4", "d4", "g3", "d4"].forEach((note, i) => playLoopNote(note, 0.11, i * 0.24, 0.014));
+    }
+
+    function playBossBgmPattern() {
+      const beat = 0.125;
+      ["b4", "g4", "d4", "g4", "a4", "d5", "d4", "a4", "b4", "a4", "d4", "g4"].forEach((note, i) => {
+        playLoopNote(note, beat * 0.9, 0.02 + i * beat, 0.038);
+        if (i % 2 === 0) harmonicaNote((noteFreqs[note] || note) / 2, 0.08, 0.017, 0.03 + i * beat);
+      });
+      ["g3", "d4", "g3", "fs4", "g3", "d4", "g3", "a3", "g3", "d4", "g3", "fs4"].forEach((note, i) => playLoopNote(note, 0.07, i * 0.125, 0.022));
+    }
+
+    function playBgmPattern() {
+      if (bgmMode === "boss") playBossBgmPattern();
+      else playNormalBgmPattern();
+    }
+
+    function startBgm(mode = "normal") {
+      try {
+        getAudio();
+        if (bgmTimer && bgmMode === mode) return;
+        stopBgm();
+        bgmMode = mode;
+        playBgmPattern();
+        bgmTimer = setInterval(playBgmPattern, mode === "boss" ? 1680 : 2200);
+      } catch {}
+    }
+
+    function stopBgm() {
+      if (!bgmTimer) return;
+      clearInterval(bgmTimer);
+      bgmTimer = null;
+    }
+
+    function fit() {
+      state.ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.w = innerWidth;
+      state.h = innerHeight;
+      state.worldW = Math.max(2200, state.w * 4);
+      state.worldH = Math.max(2200, state.h * 4);
+      canvas.width = Math.floor(state.w * state.ratio);
+      canvas.height = Math.floor(state.h * state.ratio);
+      ctx.setTransform(state.ratio, 0, 0, state.ratio, 0, 0);
+      state.player.x = clamp(state.player.x || state.worldW / 2, 0, state.worldW);
+      state.player.y = clamp(state.player.y || state.worldH / 2, 0, state.worldH);
+      updateCamera();
+    }
+
+    function updateCamera() {
+      const viewW = state.w / state.camera.zoom;
+      const viewH = state.h / state.camera.zoom;
+      state.camera.x = clamp(state.player.x - viewW / 2, 0, Math.max(0, state.worldW - viewW));
+      state.camera.y = clamp(state.player.y - viewH / 2, 0, Math.max(0, state.worldH - viewH));
+    }
+
+    function setMenu(text, buttons) {
+      menuText.textContent = text;
+      menuButtons.innerHTML = "";
+      buttons.forEach(([label, action, secondary]) => {
+        const b = document.createElement("button");
+        b.textContent = label;
+        if (secondary) b.className = "secondary";
+        b.addEventListener("click", action);
+        menuButtons.appendChild(b);
+      });
+      overlay.classList.remove("hidden");
+    }
+
+    function showTitle() {
+      state.running = false;
+      state.mode = "title";
+      stopBgm();
+      setMenu("難易度を選んで、スマホのキーボード入力でゴミの化け物を浄化しましょう。", [
+        ["イージー", () => startGame("easy"), true],
+        ["ノーマル", () => startGame("normal")],
+        ["ハード", () => startGame("hard"), true],
+        ["インフェルノ", () => startGame("inferno"), true],
+      ]);
+    }
+
+    function startGame(difficulty = state.difficulty) {
+      getAudio();
+      state.difficulty = difficulty;
+      state.running = true;
+      state.mode = "play";
+      state.stage = 0;
+      state.score = 0;
+      state.combo = 0;
+      state.kills = 0;
+      state.player.hp = state.player.maxHp = 100;
+      state.player.level = 1;
+      state.player.exp = 0;
+      state.player.nextExp = 90;
+      state.player.attack = 18;
+      state.player.defense = 1;
+      state.player.radius = 16;
+      state.player.x = state.worldW / 2;
+      state.player.y = state.worldH / 2;
+      state.move.x = 0;
+      state.move.y = 0;
+      updateCamera();
+      overlay.classList.add("hidden");
+      inputBox.value = "";
+      inputBox.focus();
+      startBgm("normal");
+      startStage(0);
+    }
+
+    function startStage(index) {
+      state.stage = index;
+      state.mode = "play";
+      state.phase = "waves";
+      state.phaseKills = 0;
+      state.phaseGoal = Math.round((8 + index * 3) * rate());
+      state.spawnTimer = 0;
+      state.bossTimer = 0;
+      state.input = "";
+      state.targetId = null;
+      state.move.x = 0;
+      state.move.y = 0;
+      state.enemies = [];
+      state.bullets = [];
+      state.particles = [];
+      state.floaters = [];
+      inputBox.value = "";
+      spawnEnemy("minion");
+      startBgm("normal");
+    }
+
+    function pickWord() {
+      const [display, answer] = words[Math.floor(rand(0, words.length))];
+      return { display, answer };
+    }
+
+    function assignNewWord(enemy) {
+      if (!enemy) return;
+      let next = pickWord();
+      for (let i = 0; i < 8 && next.answer === enemy.answer; i++) next = pickWord();
+      enemy.word = next.display;
+      enemy.answer = next.answer;
+    }
+
+    function spawnEnemy(type = "minion") {
+      const angle = rand(0, Math.PI * 2);
+      const spawnDistance = rand(Math.min(state.radarRange * 0.92, 390), Math.min(state.radarRange * 1.28, 540));
+      let x = state.player.x + Math.cos(angle) * spawnDistance;
+      let y = state.player.y + Math.sin(angle) * spawnDistance;
+      x = clamp(x, 35, state.worldW - 35);
+      y = clamp(y, 35, state.worldH - 35);
+      const stage = state.stage + 1;
+      const boss = type === "boss";
+      const word = pickWord();
+      const enemy = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()),
+        type, x, y, vx: 0, vy: 0, radius: boss ? 44 : rand(14, 22), word: word.display, answer: word.answer,
+        hp: (boss ? 210 : 16) * stage * rate(),
+        maxHp: (boss ? 210 : 16) * stage * rate(),
+        attack: (boss ? 13 : 8) * stage * rate(),
+        speed: (boss ? 42 : rand(20, 34)) * Math.pow(1.13, state.stage) * rate(),
+        color: boss ? "#8e6fd1" : ["#e7dcc7", "#9bd3d8", "#c7d69b", "#f0b27a"][Math.floor(rand(0, 4))],
+        value: boss ? 900 + stage * 180 : 80 + stage * 12,
+        freeze: 0,
+        iceBreak: 0,
+      };
+      state.enemies.push(enemy);
+      return enemy;
+    }
+
+    function addParticle(x, y, color, speed = 100, life = 0.45, size = rand(2, 6)) {
+      const a = rand(0, Math.PI * 2);
+      state.particles.push({ x, y, vx: Math.cos(a) * speed * rand(0.3, 1.2), vy: Math.sin(a) * speed * rand(0.3, 1.2), color, life, maxLife: life, size });
+    }
+
+    function floater(x, y, text, color = "#f5f7ef") {
+      state.floaters.push({ x, y, text, color, life: 0.8, maxLife: 0.8 });
+    }
+
+    function awardExp(enemy) {
+      const exp = Math.round((enemy.answer.length * 4 + 12) * (enemy.type === "boss" ? 2.4 : 1));
+      state.player.exp += exp;
+      floater(state.player.x, state.player.y - 58, `EXP +${exp}`, "#f5b84b");
+      while (state.player.exp >= state.player.nextExp) {
+        state.player.exp -= state.player.nextExp;
+        state.player.level += 1;
+        state.player.nextExp = Math.round(state.player.nextExp * 1.38 + 42);
+        state.player.maxHp *= 1.16;
+        state.player.hp = clamp(state.player.hp + state.player.maxHp * 0.3, 0, state.player.maxHp);
+        state.player.attack *= 1.13;
+        sfx("item");
+      }
+    }
+
+    function killEnemy(enemy, reason = "浄化") {
+      state.phaseKills += enemy.type === "boss" || state.phase === "waves" ? 1 : 0;
+      state.kills += 1;
+      state.score += enemy.value;
+      awardExp(enemy);
+      floater(enemy.x, enemy.y - enemy.radius, reason, enemy.type === "boss" ? "#f5b84b" : "#8fd14f");
+      for (let i = 0; i < 26; i++) addParticle(enemy.x, enemy.y, enemy.color, rand(80, 240), rand(0.25, 0.75));
+      if (Math.random() < (enemy.type === "boss" ? 1 : 0.18)) activateItem(enemy.x, enemy.y);
+      state.enemies = state.enemies.filter((target) => target !== enemy);
+      sfx("hit");
+    }
+
+    function vanishOnContact(enemy) {
+      if (!enemy || !state.enemies.includes(enemy)) return;
+      floater(enemy.x, enemy.y - enemy.radius, "接触", "#ff6b5f");
+      for (let i = 0; i < 18; i++) addParticle(enemy.x, enemy.y, enemy.color, rand(70, 220), rand(0.22, 0.62), rand(2, 7));
+      state.enemies = state.enemies.filter((target) => target !== enemy);
+      sfx("explode");
+    }
+
+    function activateItem(x, y) {
+      const roll = Math.random();
+      const item = roll < 0.16 ? "shield" : roll < 0.32 ? "pierce" : roll < 0.48 ? "explosive" : roll < 0.62 ? "omni" : roll < 0.74 ? "freeze" : roll < 0.84 ? "laser" : roll < 0.94 ? "bounce" : "vacuum";
+      sfx("item");
+      if (item === "shield") state.shield = 10;
+      if (item === "pierce") state.pierce = 10;
+      if (item === "explosive") state.explosive = 10;
+      if (item === "omni") state.omni = 10;
+      if (item === "freeze") {
+        state.freeze = 10;
+        state.enemies.forEach((enemy) => {
+          enemy.freeze = Math.max(enemy.freeze, 10);
+          enemy.iceBreak = 0;
+        });
+      }
+      if (item === "laser") {
+        state.laser = 10;
+        if (state.move.x || state.move.y) state.laserAngle = Math.atan2(state.move.y, state.move.x);
+        else aimLaserAtNearestEnemy();
+      }
+      if (item === "bounce") state.bounce = 10;
+      if (item === "vacuum") {
+        const angle = rand(0, Math.PI * 2);
+        const radius = rand(80, Math.min(240, state.radarRange * 0.65));
+        state.vacuum = {
+          x: clamp(state.player.x + Math.cos(angle) * radius, 50, state.worldW - 50),
+          y: clamp(state.player.y + Math.sin(angle) * radius, 50, state.worldH - 50),
+          life: 10, r: 28, pull: state.radarRange * 0.25,
+        };
+      }
+      floater(x, y, `アイテム ${itemName(item)}`, "#ffcf5f");
+    }
+
+    function itemName(item) {
+      return { shield: "無敵", pierce: "貫通", explosive: "炸裂", omni: "全方位", freeze: "停止", laser: "レーザー", bounce: "跳弾", vacuum: "掃除機" }[item] || "強化";
+    }
+
+    function normalize(text) {
+      return text.replace(/[ァ-ン]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60)).replace(/[、。，．\s]/g, "");
+    }
+
+    function nearestMatchingEnemy() {
+      const typed = normalize(state.input);
+      return state.enemies.find((enemy) => normalize(enemy.answer) === typed);
+    }
+
+    function hasPrefix(text = state.input) {
+      const typed = normalize(text);
+      return typed === "" || state.enemies.some((enemy) => normalize(enemy.answer).startsWith(typed));
+    }
+
+    function clearTypedInput() {
+      state.input = "";
+      inputBox.value = "";
+    }
+
+    function processTypedInput() {
+      if (!state.running) return;
+      const enemy = nearestMatchingEnemy();
+      if (enemy) {
+        clearTypedInput();
+        state.combo += 1;
+        if (state.combo >= 2) floater(state.player.x, state.player.y - 78, `${state.combo}コンボ!`, "#f5b84b");
+        state.targetId = enemy.id;
+        fireAt(enemy);
+        sfx("shot");
+        return;
+      }
+      if (hasPrefix()) {
+        sfx("ok");
+      } else {
+        clearTypedInput();
+        state.combo = 0;
+        sfx("miss");
+        floater(state.player.x, state.player.y - 55, "ミス", "#ff6b5f");
+      }
+    }
+
+    function fireAt(enemy) {
+      const comboMultiplier = Math.pow(1.2, state.combo);
+      const power = state.player.attack * comboMultiplier * (state.explosive > 0 ? 4 : state.pierce > 0 ? 2.6 : 1);
+      addShotTrail(enemy, state.explosive > 0 ? "#ffcf5f" : state.pierce > 0 ? "#7ee7ff" : "#f5f7ef");
+      damageEnemy(enemy, power);
+      if (state.enemies.includes(enemy) && enemy.hp > 0) assignNewWord(enemy);
+      if (state.omni > 0) {
+        state.enemies.filter((target) => target !== enemy && dist(target, state.player) <= state.radarRange).slice(0, 8).forEach((target) => {
+          addShotTrail(target, "#8fd14f", 0.24);
+          damageEnemy(target, state.player.attack * 0.7);
+          if (state.enemies.includes(target) && target.hp > 0) assignNewWord(target);
+        });
+      }
+    }
+
+    function addShotTrail(enemy, color = "#f5f7ef", life = 0.2) {
+      if (!enemy) return;
+      state.bullets.push({
+        x1: state.player.x,
+        y1: state.player.y,
+        x2: enemy.x,
+        y2: enemy.y,
+        color,
+        life,
+        maxLife: life,
+      });
+    }
+
+    function damageEnemy(enemy, damage, bounceLeft = state.bounce > 0 ? 2 : 0) {
+      if (!enemy || !state.enemies.includes(enemy)) return;
+      enemy.hp -= damage;
+      for (let i = 0; i < 5; i++) addParticle(enemy.x, enemy.y, enemy.color, rand(35, 130), rand(0.15, 0.4));
+      if (state.explosive > 0) {
+        state.enemies.filter((target) => target !== enemy && dist(target, enemy) < 95).forEach((target) => target.hp -= damage * 0.3);
+      }
+      if (enemy.hp <= 0) killEnemy(enemy);
+      if (state.bounce > 0 && bounceLeft > 0) {
+        const next = state.enemies.filter((target) => target !== enemy && dist(target, enemy) <= state.radarRange).sort((a, b) => dist(a, enemy) - dist(b, enemy))[0];
+        if (next) {
+          state.bullets.push({
+            x1: enemy.x,
+            y1: enemy.y,
+            x2: next.x,
+            y2: next.y,
+            color: "#ffcf5f",
+            life: 0.18,
+            maxLife: 0.18,
+          });
+          damageEnemy(next, damage * 0.55, bounceLeft - 1);
+        }
+      }
+    }
+
+    function crackIce(enemy) {
+      if (!enemy || !state.enemies.includes(enemy)) return;
+      enemy.iceBreak = 0.42;
+      playSound("pierceHit", 1.2);
+      for (let i = 0; i < 24; i++) addParticle(enemy.x, enemy.y, i % 2 ? "#bff3ff" : "#f5fbff", rand(80, 260), rand(0.28, 0.7), rand(3, 8));
+      floater(enemy.x, enemy.y - enemy.radius, "氷解", "#bff3ff");
+    }
+
+    function movePlayer(dx, dy) {
+      state.player.x = clamp(state.player.x + dx, state.player.radius, state.worldW - state.player.radius);
+      state.player.y = clamp(state.player.y + dy, state.player.radius, state.worldH - state.player.radius);
+      updateCamera();
+    }
+
+    function setMoveDirection(dx, dy) {
+      const length = Math.hypot(dx, dy);
+      if (length < 2) return;
+      state.move.x = dx / length;
+      state.move.y = dy / length;
+    }
+
+    function worldPointFromClient(clientX, clientY) {
+      return {
+        x: state.camera.x + clientX / state.camera.zoom,
+        y: state.camera.y + clientY / state.camera.zoom,
+      };
+    }
+
+    function aimLaserAtClient(clientX, clientY) {
+      const point = worldPointFromClient(clientX, clientY);
+      const dx = point.x - state.player.x;
+      const dy = point.y - state.player.y;
+      if (Math.hypot(dx, dy) < 8) return;
+      state.laserAngle = Math.atan2(dy, dx);
+    }
+
+    function aimLaserAtNearestEnemy() {
+      const target = state.enemies
+        .filter((enemy) => dist(enemy, state.player) <= state.radarRange)
+        .sort((a, b) => dist(a, state.player) - dist(b, state.player))[0];
+      if (target) state.laserAngle = Math.atan2(target.y - state.player.y, target.x - state.player.x);
+    }
+
+    function laserHitsEnemy(enemy) {
+      const dx = enemy.x - state.player.x;
+      const dy = enemy.y - state.player.y;
+      const forward = dx * Math.cos(state.laserAngle) + dy * Math.sin(state.laserAngle);
+      if (forward < 0 || forward > state.radarRange) return false;
+      const side = Math.abs(dx * Math.sin(state.laserAngle) - dy * Math.cos(state.laserAngle));
+      return side <= enemy.radius + 14;
+    }
+
+    function update(dt) {
+      state.time += dt;
+      ["shield", "pierce", "explosive", "omni", "freeze", "laser", "bounce"].forEach((key) => state[key] = Math.max(0, state[key] - dt));
+      if (state.laser <= 0 && (state.move.x || state.move.y)) {
+        movePlayer(state.move.x * state.move.speed * dt, state.move.y * state.move.speed * dt);
+      }
+      state.spawnTimer -= dt;
+      if (state.phase === "waves" && state.phaseKills < state.phaseGoal && state.spawnTimer <= 0) {
+        spawnEnemy("minion");
+        state.spawnTimer = Math.max(0.35, (1.3 - state.stage * 0.06) / rate());
+      }
+      if (state.phase === "waves" && state.phaseKills >= state.phaseGoal) {
+        state.phase = "boss";
+        state.phaseKills = 0;
+        state.phaseGoal = 1;
+        startBgm("boss");
+        const boss = spawnEnemy("boss");
+        boss.x = clamp(state.player.x, 60, state.worldW - 60);
+        boss.y = clamp(state.player.y - Math.min(300, state.radarRange * 0.75), 60, state.worldH - 60);
+      }
+      for (const enemy of [...state.enemies]) {
+        if (enemy.freeze > 0) {
+          enemy.freeze = Math.max(0, enemy.freeze - dt);
+          if (enemy.freeze <= 0) crackIce(enemy);
+          continue;
+        }
+        enemy.iceBreak = Math.max(0, (enemy.iceBreak || 0) - dt);
+        const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x);
+        enemy.x += Math.cos(angle) * enemy.speed * dt;
+        enemy.y += Math.sin(angle) * enemy.speed * dt;
+        enemy.x = clamp(enemy.x, enemy.radius, state.worldW - enemy.radius);
+        enemy.y = clamp(enemy.y, enemy.radius, state.worldH - enemy.radius);
+        if (dist(enemy, state.player) < enemy.radius + state.player.radius) {
+          if (state.shield <= 0 && state.laser <= 0) {
+            state.player.hp -= enemy.attack * dt;
+            if (state.damageSoundTimer <= 0) {
+              sfx("damage");
+              state.damageSoundTimer = 0.28;
+            }
+          }
+          if (enemy.type !== "boss") {
+            vanishOnContact(enemy);
+            continue;
+          }
+        }
+      }
+      if (state.laser > 0) {
+        state.enemies.filter(laserHitsEnemy).forEach((enemy) => {
+          enemy.hp -= state.player.attack * dt * (enemy.type === "boss" ? 0.55 : 0.95);
+          if (enemy.hp <= 0) killEnemy(enemy, "レーザー");
+        });
+      }
+      if (state.vacuum) {
+        const vac = state.vacuum;
+        vac.life -= dt;
+        for (const enemy of [...state.enemies]) {
+          if (enemy.type === "boss") continue;
+          const d = dist(enemy, vac);
+          if (d > vac.pull) continue;
+          enemy.x += ((vac.x - enemy.x) / (d || 1)) * 320 * dt;
+          enemy.y += ((vac.y - enemy.y) / (d || 1)) * 320 * dt;
+          if (d < 38) killEnemy(enemy, "吸引");
+        }
+        if (vac.life <= 0) state.vacuum = null;
+      }
+      state.particles.forEach((p) => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
+      state.particles = state.particles.filter((p) => p.life > 0);
+      state.bullets.forEach((b) => { b.life -= dt; });
+      state.bullets = state.bullets.filter((b) => b.life > 0);
+      state.floaters.forEach((f) => { f.y -= 42 * dt; f.life -= dt; });
+      state.floaters = state.floaters.filter((f) => f.life > 0);
+      state.damageSoundTimer = Math.max(0, state.damageSoundTimer - dt);
+      updateCamera();
+      if (state.player.hp <= 0) endGame(false);
+      if (state.phase === "boss" && state.phaseKills >= 1) {
+        if (state.stage >= 9) endGame(true);
+        else stageClear();
+      }
+      updateHud();
+    }
+
+    function stageClear() {
+      state.running = false;
+      state.mode = "clear";
+      overlay.classList.remove("hidden");
+      stopBgm();
+      sfx("clear");
+      setMenu(`Stage ${state.stage + 1}「${stageNames[state.stage]}」を浄化しました。`, [
+        ["次のステージ", () => { overlay.classList.add("hidden"); state.running = true; startStage(state.stage + 1); inputBox.focus(); }],
+        ["メニュー", showTitle, true],
+      ]);
+    }
+
+    function endGame(won) {
+      state.running = false;
+      state.mode = won ? "clear" : "over";
+      stopBgm();
+      if (won) sfx("clear");
+      setMenu(won ? `おめでとうございます‼️ 全10ステージを浄化しました。スコア ${state.score.toLocaleString()} 点です。` : `浄化失敗。Stage ${state.stage + 1} まで進みました。`, [
+        ["リトライ", () => startGame(state.difficulty)],
+        ["メニュー", showTitle, true],
+      ]);
+    }
+
+    function updateHud() {
+      stageLabel.textContent = `Stage ${state.stage + 1}: ${stageNames[state.stage]} / ${difficulties[state.difficulty].label}`;
+      levelLabel.textContent = state.player.level;
+      comboLabel.textContent = state.combo;
+      enemyLabel.textContent = state.enemies.length;
+      hpFill.style.width = `${clamp(state.player.hp / state.player.maxHp, 0, 1) * 100}%`;
+      expLabel.textContent = `${Math.floor((state.player.exp / state.player.nextExp) * 100)}%`;
+      const active = ["shield", "pierce", "explosive", "omni", "freeze", "laser", "bounce"].find((key) => state[key] > 0);
+      powerLabel.textContent = active ? `${itemName(active)} ${Math.ceil(state[active])}` : state.vacuum ? `掃除機 ${Math.ceil(state.vacuum.life)}` : "なし";
+      inputBox.placeholder = state.input ? `入力中: ${state.input}` : "ここをタップして入力";
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = "#101312";
+      ctx.fillRect(0, 0, state.w, state.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.05)";
+      const startY = Math.floor(state.camera.y / 38) * 38;
+      for (let y = startY; y < state.camera.y + state.h / state.camera.zoom + 38; y += 38) {
+        ctx.beginPath();
+        ctx.moveTo(0, screenY(y));
+        ctx.lineTo(state.w, screenY(y) + Math.sin(y) * screenSize(6));
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(143,209,79,0.18)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(screenX(0), screenY(0), screenSize(state.worldW), screenSize(state.worldH));
+    }
+
+    function drawRadar() {
+      const x = 72;
+      const y = 108;
+      const r = 54;
+      ctx.save();
+      ctx.fillStyle = "rgba(5,8,8,0.72)";
+      ctx.strokeStyle = "rgba(71,183,200,0.65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#8fd14f";
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      for (const enemy of state.enemies) {
+        const dx = enemy.x - state.player.x;
+        const dy = enemy.y - state.player.y;
+        const d = Math.hypot(dx, dy);
+        if (d > state.radarRange) continue;
+        ctx.fillStyle = enemy.type === "boss" ? "#f5b84b" : "#ff6b5f";
+        ctx.beginPath();
+        ctx.arc(x + dx / state.radarRange * r, y + dy / state.radarRange * r, enemy.type === "boss" ? 5 : 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawEnemy(enemy) {
+      const ex = screenX(enemy.x);
+      const ey = screenY(enemy.y);
+      if (ex < -120 || ex > state.w + 120 || ey < -120 || ey > state.h + 120) return;
+      const er = screenSize(enemy.radius);
+      ctx.save();
+      ctx.translate(ex, ey);
+      ctx.fillStyle = enemy.color;
+      ctx.strokeStyle = enemy.type === "boss" ? "#f5b84b" : "#f5f7ef";
+      ctx.lineWidth = screenSize(enemy.type === "boss" ? 5 : 3);
+      ctx.beginPath();
+      ctx.arc(0, 0, er, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#101312";
+      ctx.beginPath();
+      ctx.arc(-er * 0.25, -er * 0.12, screenSize(4), 0, Math.PI * 2);
+      ctx.arc(er * 0.25, -er * 0.12, screenSize(4), 0, Math.PI * 2);
+      ctx.fill();
+      if ((enemy.freeze || 0) > 0 || (enemy.iceBreak || 0) > 0) {
+        const frozen = (enemy.freeze || 0) > 0;
+        const breakAlpha = clamp((enemy.iceBreak || 0) / 0.42, 0, 1);
+        const pulse = 1 + Math.sin(state.time * 12) * 0.03;
+        ctx.globalAlpha = frozen ? 0.72 : breakAlpha * 0.55;
+        ctx.fillStyle = frozen ? "rgba(191, 243, 255, 0.58)" : "rgba(245, 251, 255, 0.34)";
+        ctx.strokeStyle = frozen ? "rgba(245, 251, 255, 0.88)" : "rgba(191, 243, 255, 0.78)";
+        ctx.lineWidth = Math.max(1.5, screenSize(3));
+        ctx.beginPath();
+        ctx.ellipse(0, 0, er * 1.12 * pulse, er * 0.94 * pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = frozen ? 0.9 : breakAlpha;
+        ctx.strokeStyle = "rgba(255,255,255,0.82)";
+        ctx.lineWidth = Math.max(1, screenSize(1.6));
+        for (let i = 0; i < 5; i++) {
+          const a = i * 1.26 + state.time * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * er * 0.15, Math.sin(a) * er * 0.12);
+          ctx.lineTo(Math.cos(a + 0.25) * er * 0.88, Math.sin(a + 0.25) * er * 0.74);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(ex - er, ey - er - screenSize(12), er * 2, screenSize(5));
+      ctx.fillStyle = enemy.type === "boss" ? "#f5b84b" : "#ff6b5f";
+      ctx.fillRect(ex - er, ey - er - screenSize(12), er * 2 * clamp(enemy.hp / enemy.maxHp, 0, 1), screenSize(5));
+      ctx.textAlign = "center";
+      ctx.font = `900 ${screenSize(enemy.type === "boss" ? 18 : 14)}px system-ui`;
+      ctx.fillStyle = "#f5f7ef";
+      ctx.fillText(enemy.word, ex, ey + er + screenSize(20));
+      ctx.font = `800 ${screenSize(12)}px system-ui`;
+      ctx.fillStyle = "#b8c3b0";
+      ctx.fillText(enemy.answer, ex, ey + er + screenSize(36));
+    }
+
+    function drawPlayer() {
+      const p = state.player;
+      const pr = screenSize(p.radius);
+      ctx.save();
+      ctx.translate(screenX(p.x), screenY(p.y));
+      ctx.fillStyle = state.shield > 0 || state.laser > 0 ? "#dff4ef" : "#e8f5d4";
+      ctx.strokeStyle = state.shield > 0 || state.laser > 0 ? "#47b7c8" : "#8fd14f";
+      ctx.lineWidth = screenSize(4);
+      ctx.beginPath();
+      ctx.arc(0, 0, pr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#101312";
+      ctx.beginPath();
+      ctx.arc(screenSize(-7), screenSize(-4), screenSize(4), 0, Math.PI * 2);
+      ctx.arc(screenSize(7), screenSize(-4), screenSize(4), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#101312";
+      ctx.beginPath();
+      ctx.arc(0, screenSize(7), screenSize(9), 0.15, Math.PI - 0.15);
+      ctx.stroke();
+      if (state.shield > 0 || state.laser > 0) {
+        ctx.strokeStyle = "rgba(71,183,200,0.45)";
+        ctx.lineWidth = screenSize(7);
+        ctx.beginPath();
+        ctx.arc(0, 0, screenSize(p.radius + 14 + Math.sin(state.time * 8) * 2), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawEffects() {
+      for (const bullet of state.bullets) {
+        const t = clamp(bullet.life / bullet.maxLife, 0, 1);
+        const sx = screenX(bullet.x1);
+        const sy = screenY(bullet.y1);
+        const ex = screenX(bullet.x2);
+        const ey = screenY(bullet.y2);
+        const headX = ex + (sx - ex) * t;
+        const headY = ey + (sy - ey) * t;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.25 + 0.75 * t;
+        ctx.strokeStyle = bullet.color;
+        ctx.lineWidth = screenSize(7);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(headX, headY);
+        ctx.stroke();
+        ctx.lineWidth = screenSize(2);
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(headX, headY);
+        ctx.stroke();
+        ctx.fillStyle = bullet.color;
+        ctx.beginPath();
+        ctx.arc(headX, headY, screenSize(5 + 3 * t), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (state.vacuum) {
+        const v = state.vacuum;
+        const vx = screenX(v.x);
+        const vy = screenY(v.y);
+        ctx.fillStyle = "rgba(184,195,176,0.16)";
+        ctx.beginPath();
+        ctx.arc(vx, vy, screenSize(v.pull), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#d4ded2";
+        ctx.strokeStyle = "#4f5f59";
+        ctx.lineWidth = screenSize(4);
+        ctx.beginPath();
+        ctx.roundRect(vx - screenSize(28), vy - screenSize(19), screenSize(56), screenSize(38), screenSize(8));
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#101312";
+        ctx.font = `900 ${screenSize(22)}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.fillText("吸", vx, vy + screenSize(7));
+      }
+      if (state.laser > 0) {
+        const endX = state.player.x + Math.cos(state.laserAngle) * state.radarRange;
+        const endY = state.player.y + Math.sin(state.laserAngle) * state.radarRange;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = "rgba(126,231,255,0.26)";
+        ctx.lineWidth = screenSize(28 + Math.sin(state.time * 20) * 4);
+        ctx.beginPath();
+        ctx.moveTo(screenX(state.player.x), screenY(state.player.y));
+        ctx.lineTo(screenX(endX), screenY(endY));
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(126,231,255,0.72)";
+        ctx.lineWidth = screenSize(12);
+        ctx.beginPath();
+        ctx.moveTo(screenX(state.player.x), screenY(state.player.y));
+        ctx.lineTo(screenX(endX), screenY(endY));
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = screenSize(3);
+        ctx.beginPath();
+        ctx.moveTo(screenX(state.player.x), screenY(state.player.y));
+        ctx.lineTo(screenX(endX), screenY(endY));
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function render() {
+      drawBackground();
+      drawRadar();
+      drawEffects();
+      state.enemies.forEach(drawEnemy);
+      for (const p of state.particles) {
+        const px = screenX(p.x);
+        const py = screenY(p.y);
+        if (px < -30 || px > state.w + 30 || py < -30 || py > state.h + 30) continue;
+        ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(px, py, screenSize(p.size), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      drawPlayer();
+      for (const f of state.floaters) {
+        const fx = screenX(f.x);
+        const fy = screenY(f.y);
+        ctx.globalAlpha = clamp(f.life / f.maxLife, 0, 1);
+        ctx.fillStyle = f.color;
+        ctx.font = `900 ${screenSize(16)}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.fillText(f.text, fx, fy);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function loop(now) {
+      const dt = Math.min(0.033, (now - state.last) / 1000 || 0);
+      state.last = now;
+      if (state.running) update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function showPauseMenu() {
+      if (state.mode !== "play") return;
+      state.running = false;
+      stopBgm();
+      setMenu("", [
+        ["コンティニュー", () => {
+          overlay.classList.add("hidden");
+          state.running = true;
+          startBgm(state.phase === "boss" ? "boss" : "normal");
+          inputBox.focus();
+        }],
+        ["メインメニュー", showTitle, true],
+      ]);
+    }
+
+    let composing = false;
+
+    inputBox.addEventListener("focus", () => getAudio());
+    inputBox.addEventListener("compositionstart", () => { composing = true; });
+    inputBox.addEventListener("compositionend", () => {
+      composing = false;
+      state.input = inputBox.value;
+      processTypedInput();
+    });
+    inputBox.addEventListener("input", () => {
+      if (composing) {
+        state.input = inputBox.value;
+        return;
+      }
+      state.input = inputBox.value;
+      processTypedInput();
+    });
+    inputBox.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") showPauseMenu();
+      if (event.key === "Enter") {
+        const enemy = nearestMatchingEnemy();
+        if (enemy) {
+          clearTypedInput();
+          state.combo += 1;
+          if (state.combo >= 2) floater(state.player.x, state.player.y - 78, `${state.combo}コンボ!`, "#f5b84b");
+          fireAt(enemy);
+        } else {
+          clearTypedInput();
+          state.combo = 0;
+          sfx("miss");
+        }
+      }
+    });
+    document.getElementById("pauseButton").addEventListener("click", showPauseMenu);
+
+    canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      const mode = state.laser > 0 ? "laser" : "move";
+      state.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, mode };
+      if (mode === "laser") aimLaserAtClient(event.clientX, event.clientY);
+      if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!state.drag || state.drag.id !== event.pointerId || !state.running) return;
+      event.preventDefault();
+      if (state.drag.mode === "laser" || state.laser > 0) {
+        aimLaserAtClient(event.clientX, event.clientY);
+        state.drag.x = event.clientX;
+        state.drag.y = event.clientY;
+        return;
+      }
+      const dx = (event.clientX - state.drag.x) / state.camera.zoom;
+      const dy = (event.clientY - state.drag.y) / state.camera.zoom;
+      setMoveDirection(dx, dy);
+      movePlayer(dx, dy);
+      state.drag.x = event.clientX;
+      state.drag.y = event.clientY;
+    });
+    canvas.addEventListener("pointerup", () => state.drag = null);
+    canvas.addEventListener("pointercancel", () => state.drag = null);
+    if (!window.PointerEvent) {
+      canvas.addEventListener("touchstart", (event) => {
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        event.preventDefault();
+        const mode = state.laser > 0 ? "laser" : "move";
+        state.drag = { id: touch.identifier, x: touch.clientX, y: touch.clientY, mode };
+        if (mode === "laser") aimLaserAtClient(touch.clientX, touch.clientY);
+      }, { passive: false });
+      canvas.addEventListener("touchmove", (event) => {
+        if (!state.drag || !state.running) return;
+        const touch = [...event.changedTouches].find((item) => item.identifier === state.drag.id);
+        if (!touch) return;
+        event.preventDefault();
+        if (state.drag.mode === "laser" || state.laser > 0) {
+          aimLaserAtClient(touch.clientX, touch.clientY);
+          state.drag.x = touch.clientX;
+          state.drag.y = touch.clientY;
+          return;
+        }
+        const dx = (touch.clientX - state.drag.x) / state.camera.zoom;
+        const dy = (touch.clientY - state.drag.y) / state.camera.zoom;
+        setMoveDirection(dx, dy);
+        movePlayer(dx, dy);
+        state.drag.x = touch.clientX;
+        state.drag.y = touch.clientY;
+      }, { passive: false });
+      canvas.addEventListener("touchend", () => state.drag = null, { passive: false });
+      canvas.addEventListener("touchcancel", () => state.drag = null, { passive: false });
+    }
+
+    addEventListener("resize", fit);
+    fit();
+    showTitle();
+    requestAnimationFrame((now) => {
+      state.last = now;
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
