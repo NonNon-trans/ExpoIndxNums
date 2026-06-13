@@ -431,7 +431,7 @@
       w: 1, h: 1, ratio: 1, worldW: 2400, worldH: 2400, camera: { x: 0, y: 0, zoom: 0.75 }, running: false, mode: "title", stage: 0, difficulty: "normal",
       player: { x: 1200, y: 1200, radius: 16, hp: 100, maxHp: 100, level: 1, exp: 0, nextExp: 120, attack: 12, attackRank: 0, defenseRank: 0, defenseMultiplier: 1 },
       input: "", combo: 0, score: 0, kills: 0, targetId: null, phase: "waves", phaseKills: 0, phaseGoal: 10,
-      spawnTimer: 0, bossTimer: 0, damageSoundTimer: 0, time: 0, last: 0, drag: null, move: { x: 0, y: 0, speed: 150 }, enemies: [], bullets: [], particles: [], floaters: [],
+      spawnTimer: 0, bossTimer: 0, damageSoundTimer: 0, time: 0, last: 0, drag: null, move: { x: 0, y: 0 }, enemies: [], bullets: [], particles: [], floaters: [],
       laserAngle: -Math.PI / 2, levelUpQueue: 0, killsSinceLevel: 0, typoStreak: 0, rescueCooldown: 0, rescue: null,
       radarRange: 420, shield: 0, pierce: 0, explosive: 0, omni: 0, freeze: 0, laser: 0, bounce: 0, vacuum: null,
     };
@@ -1143,6 +1143,11 @@
       state.move.y = dy / length;
     }
 
+    function inertiaMoveSpeed() {
+      const averageMinionSpeed = 27 * Math.pow(1.13, state.stage) * rate();
+      return averageMinionSpeed * 0.5;
+    }
+
     function worldPointFromClient(clientX, clientY) {
       return {
         x: state.camera.x + clientX / state.camera.zoom,
@@ -1178,7 +1183,8 @@
       state.time += dt;
       ["shield", "pierce", "explosive", "omni", "freeze", "laser", "bounce"].forEach((key) => state[key] = Math.max(0, state[key] - dt));
       if (state.laser <= 0 && (state.move.x || state.move.y)) {
-        movePlayer(state.move.x * state.move.speed * dt, state.move.y * state.move.speed * dt);
+        const speed = inertiaMoveSpeed();
+        movePlayer(state.move.x * speed * dt, state.move.y * speed * dt);
       }
       state.spawnTimer -= dt;
       if (state.phase === "waves" && state.phaseKills < state.phaseGoal && state.spawnTimer <= 0) {
