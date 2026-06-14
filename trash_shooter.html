@@ -3390,11 +3390,12 @@
         event.preventDefault();
         if (state.menuMode === "levelUp") chooseLevelBonus("attack");
         else if (state.menuMode === "stageClear") continueNextStage();
+        else if (state.menuMode === "pause") resumeGame();
         else if (state.menuMode === "title") selectDifficulty("normal");
-        else startGame();
+        else if (state.menuMode === "end") startGame();
         return;
       }
-      if (event.code === "KeyR" && !state.running) {
+      if (event.code === "KeyR" && !state.running && state.menuMode === "end") {
         event.preventDefault();
         startGame();
         return;
