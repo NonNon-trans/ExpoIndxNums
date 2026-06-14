@@ -1115,6 +1115,7 @@
     function isEasyWord(word) {
       const display = normalizeInput(word.display);
       if (/^[a-z]+$/.test(display)) return display.length <= 7;
+      if (/^[一-龠々]{4}$/.test(display)) return false;
       return Array.from(display).length <= 6;
     }
 
@@ -2210,6 +2211,12 @@
         if (bossIntercept.hit || bossIntercept.pending) {
           state.input = previousInput;
           if (!state.input) state.typingStartTime = 0;
+          return;
+        }
+        if (state.difficultyKey === "easy") {
+          state.input = previousInput;
+          if (!state.input) state.typingStartTime = 0;
+          registerTypingMiss();
           return;
         }
         state.combo = 0;
