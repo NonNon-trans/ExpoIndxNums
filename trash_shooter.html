@@ -7,7 +7,7 @@
   <style>
     :root {
       color-scheme: dark;
-      --panel: rgba(18, 24, 27, 0.82);
+      --panel: rgba(18, 24, 27, 0.16);
       --line: rgba(255, 255, 255, 0.18);
       --text: #f5f7ef;
       --muted: #b8c3b0;
@@ -46,6 +46,7 @@
       gap: 12px;
       pointer-events: none;
       z-index: 2;
+      text-shadow: 0 2px 3px rgba(0, 0, 0, 0.85);
     }
 
     .panel {
@@ -53,8 +54,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
     }
 
     .status {
@@ -240,6 +240,23 @@
       color: var(--text);
     }
 
+    .pause-button {
+      position: fixed;
+      top: 140px;
+      right: 16px;
+      z-index: 2;
+      min-width: 86px;
+      padding: 10px 14px;
+      border-color: rgba(245, 184, 75, 0.62);
+      background: rgba(13, 18, 17, 0.52);
+      color: #f5f7ef;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
+    }
+
+    .pause-button.hidden {
+      display: none;
+    }
+
     .stage-list {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -303,11 +320,18 @@
       .stage-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .pause-button {
+        top: auto;
+        right: 10px;
+        bottom: 78px;
+      }
     }
   </style>
 </head>
 <body>
   <canvas id="game" aria-label="Trash Uprising Shooter"></canvas>
+  <button class="pause-button hidden" id="pauseBtn" type="button">MENU</button>
 
   <div class="hud" aria-hidden="true">
     <div class="panel status">
@@ -374,6 +398,7 @@
     const normalBtn = document.getElementById("normalBtn");
     const hardBtn = document.getElementById("hardBtn");
     const infernoBtn = document.getElementById("infernoBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
     const stageList = document.getElementById("stageList");
     const toast = document.getElementById("toast");
 
@@ -1409,6 +1434,11 @@
       });
     }
 
+    function updatePauseButton() {
+      const visible = state.running && !state.rescue && state.menuMode === "playing";
+      pauseBtn.classList.toggle("hidden", !visible);
+    }
+
     function setTitleAward(text = "") {
       titleAward.textContent = text;
       titleAward.classList.toggle("show", !!text);
@@ -1419,8 +1449,10 @@
       runAchievements.classList.toggle("show", !!text);
     }
 
-    function mistypeAchievementName() {
+    function mistypeAchievementName(won = false) {
       const misses = state.totalMistypes;
+      if (!won && state.stage === 0) return "🏆 へっぽこタイパー 🏆";
+      if (!won && misses === 0) return "🏆 へっぽこタイパー 🏆";
       if (misses === 0) return "🏆 完全無欠の神タイパー 🏆";
       if (misses < 20) return "🏆 伝説の浄化士 🏆";
       if (misses < 40) return "🏆 熟練タイパー 🏆";
@@ -1430,9 +1462,9 @@
       return "🏆 最後まであきらめなかった 🏆";
     }
 
-    function endRunAchievementText() {
+    function endRunAchievementText(won = false) {
       const lines = [
-        mistypeAchievementName(),
+        mistypeAchievementName(won),
       ];
       if (state.maxCombo >= 20) {
         lines.push(`コンボ実績: 🏆 最大${state.maxCombo}コンボ 🏆`);
@@ -1444,6 +1476,7 @@
 
     function showTitleMenu() {
       state.running = false;
+      state.paused = false;
       stopBgm();
       stopRescueBgm();
       state.menuMode = "title";
@@ -1455,6 +1488,7 @@
       setDifficultyButtonsVisible(true);
       updateStageList();
       overlay.classList.remove("hidden");
+      updatePauseButton();
     }
 
     function selectDifficulty(key) {
@@ -1504,6 +1538,7 @@
       state.typoStreak = 0;
       state.rescueCooldown = 0;
       state.rescue = null;
+      state.paused = false;
       state.damageSoundTimer = 0;
       state.spawnTimer = 0;
       state.completed = 0;
@@ -1546,18 +1581,52 @@
       overlay.classList.add("hidden");
       state.running = true;
       state.menuMode = "playing";
+      state.paused = false;
       state.last = performance.now();
       resetGame();
       startBgm("normal");
+      updatePauseButton();
     }
 
     function continueNextStage() {
       overlay.classList.add("hidden");
       state.running = true;
       state.menuMode = "playing";
+      state.paused = false;
       state.last = performance.now();
       startStage(state.stage + 1);
       startBgm("normal");
+      updatePauseButton();
+    }
+
+    function pauseGame() {
+      if (!state.running || state.rescue || state.menuMode !== "playing") return;
+      state.running = false;
+      state.paused = true;
+      state.menuMode = "pause";
+      stopBgm();
+      setTitleAward("");
+      setRunAchievements("");
+      setPrimaryButtonsVisible(true);
+      setDifficultyButtonsVisible(false);
+      menuText.textContent = "一時停止中です。落ち着いたら再開しましょう。";
+      startBtn.textContent = "再開";
+      practiceBtn.textContent = "メニューに戻る";
+      updateStageList();
+      overlay.classList.remove("hidden");
+      canvas.style.cursor = "default";
+      updatePauseButton();
+    }
+
+    function resumeGame() {
+      if (state.menuMode !== "pause") return;
+      overlay.classList.add("hidden");
+      state.running = true;
+      state.paused = false;
+      state.menuMode = "playing";
+      state.last = performance.now();
+      startBgm(state.phase === "boss" ? "boss" : "normal");
+      updatePauseButton();
     }
 
     function showLevelUp() {
@@ -1572,6 +1641,7 @@
       practiceBtn.textContent = "防御力アップ";
       overlay.classList.remove("hidden");
       playSound("clear");
+      updatePauseButton();
     }
 
     function chooseLevelBonus(kind) {
@@ -1591,8 +1661,10 @@
       overlay.classList.add("hidden");
       state.menuMode = "playing";
       state.running = true;
+      state.paused = false;
       state.last = performance.now();
       startBgm(state.phase === "boss" ? "boss" : "normal");
+      updatePauseButton();
     }
 
     function returnToTitle() {
@@ -1620,6 +1692,7 @@
       practiceBtn.textContent = "やめる";
       updateStageList();
       overlay.classList.remove("hidden");
+      updatePauseButton();
     }
 
     function endGame(won) {
@@ -1633,7 +1706,7 @@
       if (won) playSound("clear");
       const titleIndex = won ? 9 : state.completed - 1;
       setTitleAward(titleIndex >= 0 ? `「${stageTitles[titleIndex]}」\nの称号をゲット！！` : "");
-      setRunAchievements(endRunAchievementText());
+      setRunAchievements(endRunAchievementText(won));
       menuText.textContent = won
         ? `おめでとうございます‼️ 全10ステージを浄化しました。最終スコアは ${state.score.toLocaleString()} 点です。`
         : `街の浄化は途中で止まりました。到達ステージは ${state.stage + 1}、スコアは ${state.score.toLocaleString()} 点です。`;
@@ -1641,6 +1714,7 @@
       practiceBtn.textContent = "メニューに戻る";
       updateStageList();
       overlay.classList.remove("hidden");
+      updatePauseButton();
     }
 
     function spawnEnemy(type = "minion") {
@@ -2536,6 +2610,7 @@
 
     function updateUi() {
       canvas.style.cursor = state.rescue?.mode === "intro" || !state.running ? "default" : "none";
+      updatePauseButton();
       ui.stageName.textContent = `Stage ${state.stage + 1}: ${stageNames[state.stage]} / ${difficulties[state.difficultyKey]?.label || "ノーマル"}`;
       ui.phaseName.textContent = phaseLabels[state.phase] || "";
       ui.healthBar.style.width = `${clamp((state.health / state.maxHealth) * 100, 0, 100)}%`;
@@ -3004,11 +3079,11 @@
       ctx.font = "900 22px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const text = state.input ? `入力: ${state.input}` : "単語をタイプして自動照準";
+      const text = state.input ? `入力: ${state.input}` : "正確にタイプして敵を撃破";
       const width = Math.max(260, ctx.measureText(text).width + 28);
       const x = state.w / 2 - width / 2;
       const y = state.h - 62;
-      ctx.fillStyle = "rgba(13, 18, 17, 0.78)";
+      ctx.fillStyle = "rgba(18, 24, 27, 0.16)";
       ctx.strokeStyle = "rgba(255,255,255,0.18)";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -3349,6 +3424,7 @@
     startBtn.addEventListener("click", () => {
       if (state.menuMode === "levelUp") chooseLevelBonus("attack");
       else if (state.menuMode === "stageClear") continueNextStage();
+      else if (state.menuMode === "pause") resumeGame();
       else if (state.menuMode === "title") selectDifficulty("normal");
       else startGame();
     });
@@ -3356,8 +3432,10 @@
       if (state.menuMode === "levelUp") chooseLevelBonus("defense");
       else if (state.menuMode === "stageClear") returnToTitle();
       else if (state.menuMode === "end") returnToTitle();
+      else if (state.menuMode === "pause") returnToTitle();
       else selectDifficulty("normal");
     });
+    pauseBtn.addEventListener("click", pauseGame);
     easyBtn.addEventListener("click", () => selectDifficulty("easy"));
     normalBtn.addEventListener("click", () => selectDifficulty("normal"));
     hardBtn.addEventListener("click", () => selectDifficulty("hard"));
