@@ -509,6 +509,7 @@
       enemies: [],
       bullets: [],
       enemyBullets: [],
+      powerups: [],
       particles: [],
       floaters: [],
       vacuums: [],
@@ -696,7 +697,7 @@
       { display: "trim", answers: ["trim"] },
       { display: "ample", answers: ["ample"] },
       { display: "giant", answers: ["giant"] },
-      { display: "ドラえもn", reading: "どらえもん", answers: ["doraemon", "どらえもん"] },
+      { display: "ドラえもん", reading: "どらえもん", answers: ["doraemon", "どらえもん"] },
       { display: "タケコプタ", answers: ["takekoputa", "たけこぷた"] },
       { display: "三次元ポケット", reading: "さんじげんぽけっと", answers: ["sanjigenpoketto", "sanzigenpoketto", "さんじげんぽけっと"] },
       { display: "スマホ", answers: ["sumaho", "すまほ"] },
@@ -725,7 +726,7 @@
       { display: "十人十色", reading: "じゅうにんといろ", answers: ["juunintoiro", "zyuunintoiro", "じゅうにんといろ"] },
       { display: "竜頭蛇尾", reading: "りゅうとうだび", answers: ["ryuutoudabi", "ryutodabi", "りゅうとうだび"] },
       { display: "臥薪嘗胆", reading: "がしんしょうたん", answers: ["gashinshoutan", "gasinsyoutan", "がしんしょうたん"] },
-      { display: "肉を切らせて骨を断つ", reading: "にくをきらせてほねをたつ", answers: ["nikuokirasetehoneotatsu", "nikuokirasetehoneotatu", "にくをきらせてほねをたつ"] },
+      { display: "肉を切らせて骨を断つ", reading: "にくをきらせてほねをたつ", answers: ["nikuokirasetehoneotatsu", "nikuokirasetehoneotatu", "nikuokirasetehonewotatsu", "nikuokirasetehonewotatu", "nikuwokirasetehoneotatsu", "nikuwokirasetehoneotatu", "nikuwokirasetehonewotatsu", "nikuwokirasetehonewotatu", "にくをきらせてほねをたつ"] },
       { display: "バッチコイ", answers: ["bacchikoi", "batchikoi", "ばっちこい"] },
       { display: "ドリルせんのかい", answers: ["dorirusennokai", "どりるせんのかい"] },
       { display: "横顔めちゃめちゃ新幹線", reading: "よこがおめちゃめちゃしんかんせん", answers: ["yokogaomechamechashinkansen", "yokogaometyametyasinkansen", "よこがおめちゃめちゃしんかんせん"] },
@@ -1111,8 +1112,16 @@
       playSound("heal");
     }
 
+    function isEasyWord(word) {
+      const display = normalizeInput(word.display);
+      if (/^[a-z]+$/.test(display)) return display.length <= 7;
+      return Array.from(display).length <= 6;
+    }
+
     function pickWord() {
-      return wordBank[Math.floor(rand(0, wordBank.length))];
+      const candidates = state.difficultyKey === "easy" ? wordBank.filter(isEasyWord) : wordBank;
+      const pool = candidates.length ? candidates : wordBank;
+      return pool[Math.floor(rand(0, pool.length))];
     }
 
     function normalizeInput(text) {
@@ -1500,6 +1509,7 @@
       state.enemies = [];
       state.bullets = [];
       state.enemyBullets = [];
+      state.powerups = [];
       state.particles = [];
       state.floaters = [];
       state.vacuums = [];
@@ -1519,6 +1529,7 @@
       state.enemies.length = 0;
       state.bullets.length = 0;
       state.enemyBullets.length = 0;
+      state.powerups.length = 0;
       spawnEnemy("minion");
       showToast(`Stage ${index + 1}: ${stageNames[index]}`);
     }
@@ -1596,6 +1607,7 @@
       state.health = clamp(state.health + 18, 0, state.maxHealth);
       state.bullets.length = 0;
       state.enemyBullets.length = 0;
+      state.powerups.length = 0;
       state.input = "";
       menuText.textContent = `Stage ${state.stage + 1}「${stageNames[state.stage]}」を浄化しました。ライフが少し回復しました。次のステージではゴミの集合体がさらに大きくなります。`;
       setTitleAward("");
@@ -1767,11 +1779,7 @@
       state.bossBulletInput = "";
       playSound("hit");
       if (Math.random() < 0.18) {
-        activatePowerup({
-          x: bullet.x,
-          y: bullet.y,
-          kind: pickPowerupKind(),
-        });
+        spawnPowerup(bullet.x, bullet.y, pickPowerupKind());
       }
       return { hit: true, pending: false };
     }
@@ -1801,11 +1809,7 @@
     function dropPowerup(x, y, enemyType) {
       const baseChance = enemyType === "boss" ? 1 : 0.14 + state.stage * 0.012;
       if (Math.random() > baseChance) return;
-      activatePowerup({
-        x,
-        y,
-        kind: pickPowerupKind(),
-      });
+      spawnPowerup(x, y, pickPowerupKind());
     }
 
     function dropBossHitPowerup(enemy) {
@@ -1814,11 +1818,11 @@
       if (enemy.powerupHitCount < enemy.nextPowerupHit) return;
       enemy.powerupHitCount = 0;
       enemy.nextPowerupHit = Math.floor(rand(3, 7));
-      activatePowerup({
-        x: enemy.x + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
-        y: enemy.y + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
-        kind: pickPowerupKind(),
-      });
+      spawnPowerup(
+        enemy.x + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
+        enemy.y + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
+        pickPowerupKind(),
+      );
     }
 
     function pickPowerupKind() {
@@ -1842,7 +1846,38 @@
       if (kind === "laser") return "レーザー";
       if (kind === "bounce") return "跳弾ショット";
       if (kind === "vacuum") return "掃除機";
+      if (kind === "heal") return "HP回復";
       return "強化";
+    }
+
+    function powerupColor(kind) {
+      if (kind === "shield") return "#ffd84d";
+      if (kind === "pierce") return "#45a7ff";
+      if (kind === "explosive") return "#ff8f3d";
+      if (kind === "omni") return "#ff4b4b";
+      if (kind === "freeze") return "#f5fbff";
+      if (kind === "laser") return "#6defff";
+      if (kind === "bounce") return "#ff9d2f";
+      if (kind === "vacuum") return "#bac3c2";
+      if (kind === "heal") return "#8fd14f";
+      return "#ffcf5f";
+    }
+
+    function spawnPowerup(x, y, kind) {
+      const radius = state.player.radius * 0.625;
+      const powerup = {
+        x: clamp(x, radius + 8, state.w - radius - 8),
+        y: clamp(y, 90 + radius, state.h - radius - 8),
+        kind,
+        radius,
+        age: 0,
+        life: 18,
+        spin: rand(0, Math.PI * 2),
+      };
+      state.powerups.push(powerup);
+      addFloater(powerup.x, powerup.y - 26, powerupLabel(kind), powerupColor(kind));
+      for (let i = 0; i < 14; i++) addParticle(powerup.x, powerup.y, powerupColor(kind), rand(35, 120), rand(0.18, 0.45), rand(2, 5));
+      return powerup;
     }
 
     function activatePowerup(powerup) {
@@ -1891,9 +1926,12 @@
         }];
         addFloater(state.vacuums[0].x, state.vacuums[0].y - 52, "掃除機", "#b8c3b0");
         showToast("掃除機出現: 近くの敵を吸い込む");
+      } else if (powerup.kind === "heal") {
+        healPlayer(0.1, powerup.x, powerup.y);
+        showToast("HPを回復");
       }
       state.shake = Math.max(state.shake, 12);
-      const color = powerup.kind === "shield" ? "#47b7c8" : powerup.kind === "pierce" ? "#f5b84b" : powerup.kind === "explosive" ? "#ff8f3d" : powerup.kind === "omni" ? "#d6cdfa" : powerup.kind === "laser" ? "#7ee7ff" : powerup.kind === "bounce" ? "#f0a7ff" : powerup.kind === "vacuum" ? "#b8c3b0" : "#ffcf5f";
+      const color = powerupColor(powerup.kind);
       for (let i = 0; i < 34; i++) {
         addParticle(powerup.x, powerup.y, color, rand(90, 280), rand(0.35, 0.9), rand(3, 8));
       }
@@ -1916,6 +1954,26 @@
 
     function addFloater(x, y, text, color = "#f5f7ef") {
       state.floaters.push({ x, y, text, color, life: 0.75, maxLife: 0.75 });
+    }
+
+    function updatePowerups(dt) {
+      for (const powerup of state.powerups) {
+        powerup.age += dt;
+        powerup.life -= dt;
+        powerup.spin += dt * 1.8;
+        const dx = state.player.x - powerup.x;
+        const dy = state.player.y - powerup.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const speed = Math.min(980, 28 * (Math.exp(powerup.age * 2.35) - 1));
+        const step = Math.min(distance, speed * dt);
+        powerup.x += (dx / distance) * step;
+        powerup.y += (dy / distance) * step;
+        if (distance <= powerup.radius + state.player.radius) {
+          activatePowerup(powerup);
+          powerup.life = 0;
+        }
+      }
+      state.powerups = state.powerups.filter((powerup) => powerup.life > 0);
     }
 
     function shouldAdvanceForKill(enemy) {
@@ -1941,8 +1999,7 @@
         for (let i = 0; i < 28; i++) addParticle(enemy.x, enemy.y, i % 2 ? enemy.kind.color : "#f5f7ef", rand(70, 260), rand(0.35, 0.85), rand(3, 9));
         dropPowerup(enemy.x + rand(-18, 18), enemy.y + rand(-18, 18), enemy.type);
         if (enemy.type === "minion" && Math.random() < 0.18) {
-          addFloater(state.player.x, state.player.y - 96, "アイテムゲット! HP回復", "#8fd14f");
-          healPlayer(0.1, enemy.x, enemy.y);
+          spawnPowerup(enemy.x + rand(-16, 16), enemy.y + rand(-16, 16), "heal");
         }
         if (awardExp) awardEnemyKillExp(enemy);
         processLevelUps();
@@ -2406,6 +2463,7 @@
         }
       }
       state.enemyBullets = state.enemyBullets.filter((shot) => shot.life > 0 && shot.x > -60 && shot.x < state.w + 60 && shot.y > -80 && shot.y < state.h + 80);
+      updatePowerups(dt);
 
       for (const bullet of state.bullets) {
         const lockedEnemy = state.enemies.find((enemy) => enemy.id === bullet.targetId);
@@ -2786,6 +2844,151 @@
       }
     }
 
+    function strokeArrow(fromX, fromY, toX, toY, size = 5) {
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - Math.cos(angle - 0.55) * size, toY - Math.sin(angle - 0.55) * size);
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - Math.cos(angle + 0.55) * size, toY - Math.sin(angle + 0.55) * size);
+      ctx.stroke();
+    }
+
+    function drawPowerupSymbol(kind, radius) {
+      const r = radius * 0.72;
+      if (kind === "shield") {
+        const points = [];
+        for (let i = 0; i < 5; i++) {
+          const a = -Math.PI / 2 + (Math.PI * 2 * i) / 5;
+          points.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+        }
+        ctx.beginPath();
+        [0, 2, 4, 1, 3, 0].forEach((index, i) => i ? ctx.lineTo(points[index].x, points[index].y) : ctx.moveTo(points[index].x, points[index].y));
+        ctx.stroke();
+      } else if (kind === "pierce") {
+        ctx.beginPath();
+        ctx.arc(4, 0, r * 0.58, -1.2, 2.7);
+        ctx.moveTo(-r * 0.25, -r * 0.45);
+        ctx.lineTo(-r * 0.05, -r * 0.12);
+        ctx.lineTo(r * 0.18, -r * 0.56);
+        ctx.moveTo(r * 0.05, r * 0.12);
+        ctx.lineTo(r * 0.46, r * 0.44);
+        ctx.moveTo(r * 0.1, -r * 0.02);
+        ctx.lineTo(r * 0.64, -r * 0.18);
+        ctx.stroke();
+        strokeArrow(-r * 0.92, r * 0.54, r * 0.36, -r * 0.1, r * 0.16);
+      } else if (kind === "explosive") {
+        ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+          const a = -Math.PI / 2 + (Math.PI * 2 * i) / 16;
+          const rr = i % 2 ? r * 0.42 : r;
+          const x = Math.cos(a) * rr;
+          const y = Math.sin(a) * rr;
+          if (i) ctx.lineTo(x, y);
+          else ctx.moveTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === "omni") {
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI * 2 * i) / 8;
+          strokeArrow(Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36, Math.cos(a) * r, Math.sin(a) * r, r * 0.14);
+        }
+      } else if (kind === "freeze") {
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI * 2 * i) / 6;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+          ctx.moveTo(Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58);
+          ctx.lineTo(Math.cos(a + 0.48) * r * 0.78, Math.sin(a + 0.48) * r * 0.78);
+          ctx.moveTo(Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58);
+          ctx.lineTo(Math.cos(a - 0.48) * r * 0.78, Math.sin(a - 0.48) * r * 0.78);
+          ctx.stroke();
+        }
+      } else if (kind === "laser") {
+        ctx.beginPath();
+        ctx.moveTo(-r, r * 0.55);
+        ctx.lineTo(r * 0.42, -r * 0.32);
+        ctx.moveTo(-r * 0.8, r * 0.78);
+        ctx.lineTo(r * 0.62, -r * 0.1);
+        ctx.moveTo(r * 0.52, -r * 0.55);
+        ctx.lineTo(r * 0.52, r * 0.16);
+        ctx.moveTo(r * 0.18, -r * 0.2);
+        ctx.lineTo(r * 0.86, -r * 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI * 2 * i) / 8;
+          ctx.moveTo(r * 0.52, -r * 0.2);
+          ctx.lineTo(r * 0.52 + Math.cos(a) * r * 0.36, -r * 0.2 + Math.sin(a) * r * 0.36);
+        }
+        ctx.stroke();
+      } else if (kind === "bounce") {
+        ctx.beginPath();
+        ctx.arc(-r * 0.48, -r * 0.28, r * 0.28, 0, Math.PI * 2);
+        ctx.arc(r * 0.5, -r * 0.02, r * 0.28, 0, Math.PI * 2);
+        ctx.arc(-r * 0.08, r * 0.58, r * 0.28, 0, Math.PI * 2);
+        ctx.stroke();
+        strokeArrow(-r * 0.78, -r * 0.8, -r * 0.48, -r * 0.56, r * 0.13);
+        strokeArrow(-r * 0.2, -r * 0.18, r * 0.22, -r * 0.04, r * 0.13);
+        strokeArrow(r * 0.32, r * 0.2, r * 0.04, r * 0.36, r * 0.13);
+      } else if (kind === "vacuum") {
+        ctx.beginPath();
+        ctx.roundRect(-r * 0.45, -r * 0.1, r * 0.68, r * 0.42, r * 0.12);
+        ctx.moveTo(r * 0.18, -r * 0.14);
+        ctx.quadraticCurveTo(r * 0.76, -r * 0.72, r * 0.86, -r * 0.18);
+        ctx.lineTo(r * 0.98, -r * 0.12);
+        ctx.moveTo(-r * 0.25, r * 0.34);
+        ctx.lineTo(-r * 0.34, r * 0.58);
+        ctx.moveTo(r * 0.04, r * 0.34);
+        ctx.lineTo(r * 0.12, r * 0.58);
+        ctx.moveTo(-r * 0.86, r * 0.5);
+        ctx.lineTo(r * 0.56, r * 0.5);
+        ctx.stroke();
+      } else if (kind === "heal") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.78);
+        ctx.lineTo(0, r * 0.78);
+        ctx.moveTo(-r * 0.78, 0);
+        ctx.lineTo(r * 0.78, 0);
+        ctx.stroke();
+      }
+    }
+
+    function drawPowerups() {
+      for (const powerup of state.powerups) {
+        ctx.save();
+        ctx.translate(powerup.x, powerup.y);
+        ctx.rotate(powerup.spin * 0.45);
+        const color = powerupColor(powerup.kind);
+        const pulse = 1 + Math.sin(state.time * 8 + powerup.age * 6) * 0.04;
+        const r = powerup.radius * pulse;
+        ctx.globalAlpha = clamp(powerup.life / 0.45, 0, 1);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, r * 0.13);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 13;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha *= 0.92;
+        ctx.lineWidth = Math.max(1.7, r * 0.11);
+        drawPowerupSymbol(powerup.kind, r);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
     function drawInputPrompt() {
       ctx.save();
       ctx.font = "900 22px system-ui";
@@ -3022,6 +3225,7 @@
         ctx.fill();
       }
       for (const enemy of state.enemies) drawEnemy(enemy);
+      drawPowerups();
       for (const p of state.particles) {
         ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
         ctx.fillStyle = p.color;
