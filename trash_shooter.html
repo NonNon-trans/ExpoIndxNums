@@ -223,6 +223,75 @@
       margin-top: 18px;
     }
 
+    .word-mode-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 18px 0 4px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .word-mode-label {
+      display: grid;
+      gap: 2px;
+    }
+
+    .word-mode-label strong {
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .word-mode-label span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .word-mode-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .switch-track {
+      position: relative;
+      width: 112px;
+      height: 62px;
+      border-radius: 999px;
+      padding: 5px;
+      background: #6e7772;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18), 0 9px 22px rgba(0, 0, 0, 0.34);
+      transition: background 180ms ease, box-shadow 180ms ease;
+      flex: 0 0 auto;
+    }
+
+    .switch-thumb {
+      display: block;
+      position: relative;
+      z-index: 1;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38), 0 1px 2px rgba(0, 0, 0, 0.22);
+      transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .word-mode-toggle input:checked + .switch-track {
+      background: #35df61;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14), 0 0 22px rgba(52, 214, 95, 0.42);
+    }
+
+    .word-mode-toggle input:checked + .switch-track .switch-thumb {
+      transform: translateX(50px);
+    }
+
     button {
       appearance: none;
       border: 1px solid rgba(255, 255, 255, 0.22);
@@ -321,6 +390,11 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .word-mode-toggle {
+        align-items: center;
+        flex-direction: row;
+      }
+
       .pause-button {
         top: auto;
         right: 10px;
@@ -371,6 +445,14 @@
       <p class="lead" id="menuText">ちゃんと捨てられなかったゴミたちが結集し、街の路地から巨大なゴミの化け物として立ち上がった。方向キーで移動し、敵が背負った単語を正確にタイプして浄化ショットを撃ち込もう。</p>
       <div class="title-award" id="titleAward"></div>
       <div class="run-achievements" id="runAchievements"></div>
+      <label class="word-mode-toggle" id="wordModeToggle">
+        <span class="word-mode-label">
+          <strong>英単語</strong>
+          <span id="wordModeText">ON: 日本語+英語</span>
+        </span>
+        <input id="englishToggle" type="checkbox" checked>
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      </label>
       <div class="controls">
         <button id="startBtn">ゲーム開始</button>
         <button class="secondary" id="practiceBtn">ステージ1から練習</button>
@@ -399,6 +481,9 @@
     const hardBtn = document.getElementById("hardBtn");
     const infernoBtn = document.getElementById("infernoBtn");
     const pauseBtn = document.getElementById("pauseBtn");
+    const englishToggle = document.getElementById("englishToggle");
+    const wordModeToggle = document.getElementById("wordModeToggle");
+    const wordModeText = document.getElementById("wordModeText");
     const stageList = document.getElementById("stageList");
     const toast = document.getElementById("toast");
 
@@ -528,6 +613,7 @@
       completed: 0,
       menuMode: "title",
       difficultyKey: "normal",
+      englishWords: true,
       mouse: { x: 0, y: 0 },
       player: { x: 0, y: 0, radius: 25, speed: 285 },
       keys: new Set(),
@@ -1144,8 +1230,18 @@
       return Array.from(display).length <= 6;
     }
 
+    function isEnglishDisplayWord(word) {
+      return /^[a-z]+$/.test(normalizeInput(word.display));
+    }
+
+    function isAllowedWord(word) {
+      if (!state.englishWords && isEnglishDisplayWord(word)) return false;
+      if (state.difficultyKey === "easy" && !isEasyWord(word)) return false;
+      return true;
+    }
+
     function pickWord() {
-      const candidates = state.difficultyKey === "easy" ? wordBank.filter(isEasyWord) : wordBank;
+      const candidates = wordBank.filter(isAllowedWord);
       const pool = candidates.length ? candidates : wordBank;
       return pool[Math.floor(rand(0, pool.length))];
     }
@@ -1439,6 +1535,13 @@
       pauseBtn.classList.toggle("hidden", !visible);
     }
 
+    function updateWordModeUi() {
+      englishToggle.checked = state.englishWords;
+      wordModeText.textContent = state.englishWords ? "ON: 日本語+英語" : "OFF: 日本語のみ";
+      const visible = state.menuMode === "title";
+      wordModeToggle.style.display = visible ? "" : "none";
+    }
+
     function setTitleAward(text = "") {
       titleAward.textContent = text;
       titleAward.classList.toggle("show", !!text);
@@ -1465,6 +1568,7 @@
     function endRunAchievementText(won = false) {
       const lines = [
         mistypeAchievementName(won),
+        state.englishWords ? "単語モード: 英単語あり" : "単語モード: 日本語のみ",
       ];
       if (state.maxCombo >= 20) {
         lines.push(`コンボ実績: 🏆 最大${state.maxCombo}コンボ 🏆`);
@@ -1489,6 +1593,7 @@
       updateStageList();
       overlay.classList.remove("hidden");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function selectDifficulty(key) {
@@ -1586,6 +1691,7 @@
       resetGame();
       startBgm("normal");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function continueNextStage() {
@@ -1597,6 +1703,7 @@
       startStage(state.stage + 1);
       startBgm("normal");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function pauseGame() {
@@ -1616,6 +1723,7 @@
       overlay.classList.remove("hidden");
       canvas.style.cursor = "default";
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function resumeGame() {
@@ -1627,6 +1735,7 @@
       state.last = performance.now();
       startBgm(state.phase === "boss" ? "boss" : "normal");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function showLevelUp() {
@@ -1642,6 +1751,7 @@
       overlay.classList.remove("hidden");
       playSound("clear");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function chooseLevelBonus(kind) {
@@ -1665,6 +1775,7 @@
       state.last = performance.now();
       startBgm(state.phase === "boss" ? "boss" : "normal");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function returnToTitle() {
@@ -1693,6 +1804,7 @@
       updateStageList();
       overlay.classList.remove("hidden");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function endGame(won) {
@@ -1715,6 +1827,7 @@
       updateStageList();
       overlay.classList.remove("hidden");
       updatePauseButton();
+      updateWordModeUi();
     }
 
     function spawnEnemy(type = "minion") {
@@ -3437,6 +3550,10 @@
       else selectDifficulty("normal");
     });
     pauseBtn.addEventListener("click", pauseGame);
+    englishToggle.addEventListener("change", () => {
+      state.englishWords = englishToggle.checked;
+      updateWordModeUi();
+    });
     easyBtn.addEventListener("click", () => selectDifficulty("easy"));
     normalBtn.addEventListener("click", () => selectDifficulty("normal"));
     hardBtn.addEventListener("click", () => selectDifficulty("hard"));
