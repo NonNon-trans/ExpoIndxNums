@@ -1432,9 +1432,12 @@
     function endRunAchievementText() {
       const lines = [
         mistypeAchievementName(),
-        `最大${state.maxCombo}コンボ`,
       ];
-      if (state.maxCombo >= 20) lines.push(`コンボ実績: 🏆 最大${state.maxCombo}コンボ 🏆`);
+      if (state.maxCombo >= 20) {
+        lines.push(`コンボ実績: 🏆 最大${state.maxCombo}コンボ 🏆`);
+      } else {
+        lines.push(`最大${state.maxCombo}コンボ`);
+      }
       return lines.join("\n");
     }
 
