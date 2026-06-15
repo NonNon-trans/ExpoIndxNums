@@ -176,6 +176,12 @@
       white-space: pre-line;
     }
 
+    .lead rt {
+      font-size: 0.58em;
+      color: #d9e6d4;
+      font-weight: 800;
+    }
+
     .title-award {
       display: none;
       margin: 18px 0 8px;
@@ -442,13 +448,13 @@
   <div class="overlay" id="overlay">
     <div class="menu">
       <h1>Trash Uprising Shooter</h1>
-      <p class="lead" id="menuText">ちゃんと捨てられなかったゴミたちが結集し、街の路地から巨大なゴミの化け物として立ち上がった。方向キーで移動し、敵が背負った単語を正確にタイプして浄化ショットを撃ち込もう。</p>
+      <p class="lead" id="menuText"><ruby>方向<rt>ほうこう</rt></ruby>キーで<ruby>移動<rt>いどう</rt></ruby>し、<ruby>敵<rt>てき</rt></ruby>にくっついてる<ruby>単語<rt>たんご</rt></ruby>を<ruby>正確<rt>せいかく</rt></ruby>にタイプして<ruby>浄化<rt>じょうか</rt></ruby>ショットを<ruby>撃<rt>う</rt></ruby>ち<ruby>込<rt>こ</rt></ruby>もう。<br><ruby>難易度<rt>なんいど</rt></ruby>を<ruby>選<rt>えら</rt></ruby>んでゲームスタート‼️</p>
       <div class="title-award" id="titleAward"></div>
       <div class="run-achievements" id="runAchievements"></div>
       <label class="word-mode-toggle" id="wordModeToggle">
         <span class="word-mode-label">
-          <strong>英単語</strong>
-          <span id="wordModeText">ON: 日本語+英語</span>
+          <strong id="wordModeTitle">英単語ON</strong>
+          <span id="wordModeText">日本語+英語</span>
         </span>
         <input id="englishToggle" type="checkbox" checked>
         <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
@@ -483,6 +489,7 @@
     const pauseBtn = document.getElementById("pauseBtn");
     const englishToggle = document.getElementById("englishToggle");
     const wordModeToggle = document.getElementById("wordModeToggle");
+    const wordModeTitle = document.getElementById("wordModeTitle");
     const wordModeText = document.getElementById("wordModeText");
     const stageList = document.getElementById("stageList");
     const toast = document.getElementById("toast");
@@ -570,10 +577,14 @@
       phaseKills: 0,
       phaseGoal: 12,
       bossPrepTimer: 0,
+      bossIntroTimer: 0,
       score: 0,
       combo: 0,
       maxCombo: 0,
       totalMistypes: 0,
+      totalKills: 0,
+      totalTypedChars: 0,
+      playStartTime: 0,
       health: 100,
       maxHealth: 100,
       clean: 0,
@@ -1537,7 +1548,8 @@
 
     function updateWordModeUi() {
       englishToggle.checked = state.englishWords;
-      wordModeText.textContent = state.englishWords ? "ON: 日本語+英語" : "OFF: 日本語のみ";
+      wordModeTitle.textContent = state.englishWords ? "英単語ON" : "英単語OFF";
+      wordModeText.textContent = state.englishWords ? "日本語+英語" : "日本語のみ";
       const visible = state.menuMode === "title";
       wordModeToggle.style.display = visible ? "" : "none";
     }
@@ -1550,6 +1562,10 @@
     function setRunAchievements(text = "") {
       runAchievements.textContent = text;
       runAchievements.classList.toggle("show", !!text);
+    }
+
+    function titleMenuHtml() {
+      return "<ruby>方向<rt>ほうこう</rt></ruby>キーで<ruby>移動<rt>いどう</rt></ruby>し、<ruby>敵<rt>てき</rt></ruby>にくっついてる<ruby>単語<rt>たんご</rt></ruby>を<ruby>正確<rt>せいかく</rt></ruby>にタイプして<ruby>浄化<rt>じょうか</rt></ruby>ショットを<ruby>撃<rt>う</rt></ruby>ち<ruby>込<rt>こ</rt></ruby>もう。<br><ruby>難易度<rt>なんいど</rt></ruby>を<ruby>選<rt>えら</rt></ruby>んでゲームスタート‼️";
     }
 
     function mistypeAchievementName(won = false) {
@@ -1565,6 +1581,25 @@
       return "🏆 最後まであきらめなかった 🏆";
     }
 
+    function formatPlayTime(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}分${seconds}秒`;
+    }
+
+    function playResultLines() {
+      const elapsedMs = state.playStartTime ? Date.now() - state.playStartTime : 0;
+      const elapsedSeconds = Math.max(0, elapsedMs / 1000);
+      const speed = elapsedSeconds > 0 ? state.totalTypedChars / elapsedSeconds : 0;
+      return [
+        `合計撃破数: ${state.totalKills}体`,
+        `合計タイプ数: ${state.totalTypedChars}文字`,
+        `合計プレイ時間: ${formatPlayTime(elapsedMs)}`,
+        `平均入力速度: ${speed.toFixed(2)}文字/秒`,
+      ];
+    }
+
     function endRunAchievementText(won = false) {
       const lines = [
         mistypeAchievementName(won),
@@ -1575,6 +1610,7 @@
       } else {
         lines.push(`最大${state.maxCombo}コンボ`);
       }
+      lines.push(...playResultLines());
       return lines.join("\n");
     }
 
@@ -1585,7 +1621,7 @@
       stopRescueBgm();
       state.menuMode = "title";
       state.phase = "over";
-      menuText.textContent = "難易度を選んでゲームを開始してください。方向キーで移動し、敵が背負った単語を正確にタイプして浄化ショットを撃ち込もう。";
+      menuText.innerHTML = titleMenuHtml();
       setTitleAward("");
       setRunAchievements("");
       setPrimaryButtonsVisible(false);
@@ -1612,6 +1648,9 @@
       state.combo = 0;
       state.maxCombo = 0;
       state.totalMistypes = 0;
+      state.totalKills = 0;
+      state.totalTypedChars = 0;
+      state.playStartTime = Date.now();
       state.health = 100;
       state.maxHealth = 100;
       state.clean = 0;
@@ -1666,6 +1705,7 @@
       state.phaseKills = 0;
       state.phaseGoal = Math.max(3, Math.round((10 + index * 3) * difficultyRate()));
       state.bossPrepTimer = 0;
+      state.bossIntroTimer = 0;
       state.clean = 0;
       state.input = "";
       state.targetId = null;
@@ -2181,6 +2221,7 @@
       if (!quiet) addFloater(enemy.x, enemy.y - enemy.radius, `${Math.round(damage)}`, "#e8f5d4");
       for (let i = 0; i < (quiet ? 3 : 8); i++) addParticle(enemy.x, enemy.y, enemy.kind.color, rand(40, 160), rand(0.18, 0.55));
       if (enemy.hp <= 0) {
+        state.totalKills += 1;
         state.killsSinceLevel += 1;
         if (shouldAdvanceForKill(enemy)) state.phaseKills += 1;
         state.score += Math.round(enemy.value * (1 + Math.min(0.75, state.combo * 0.035)));
@@ -2244,6 +2285,7 @@
     }
 
     function vacuumEnemy(enemy, vacuum) {
+      state.totalKills += 1;
       state.killsSinceLevel += 1;
       if (shouldAdvanceForKill(enemy)) state.phaseKills += 1;
       state.score += Math.round(enemy.value * 0.8);
@@ -2323,20 +2365,16 @@
 
     function summonBossByAbsorbing() {
       const cleared = state.enemies.filter((enemy) => enemy.type !== "boss");
-      const center = cleared.length
-        ? {
-            x: cleared.reduce((sum, enemy) => sum + enemy.x, 0) / cleared.length,
-            y: cleared.reduce((sum, enemy) => sum + enemy.y, 0) / cleared.length,
-          }
-        : { x: state.w / 2, y: state.h * 0.25 };
       for (const enemy of cleared) {
         for (let i = 0; i < 18; i++) addParticle(enemy.x, enemy.y, i % 2 ? enemy.kind.color : "#f5b84b", rand(100, 300), rand(0.25, 0.85), rand(3, 9));
       }
       state.enemies.length = 0;
+      state.input = "";
+      state.typingStartTime = 0;
+      state.bossBulletInput = "";
+      state.bossIntroTimer = 2.1;
       playSound("explode");
       const boss = spawnEnemy("boss");
-      boss.x = center.x;
-      boss.y = center.y;
       boss.maxHp += cleared.length * (12 + state.stage * 4) * stageDefenseMultiplier("boss");
       boss.hp = boss.maxHp;
       boss.radius += Math.min(70, cleared.length * 3.2);
@@ -2367,12 +2405,17 @@
       }
     }
 
+    function recordTypedChars(text) {
+      if (!text) return;
+      state.totalTypedChars += Array.from(text).length;
+    }
+
     function handleTypingText(text) {
       if (state.rescue) {
         handleRescueTyping(text);
         return;
       }
-      if (!state.running || !text) return;
+      if (!state.running || state.bossIntroTimer > 0 || !text) return;
       const bossIntercept = interceptBossBullet(text);
       const value = normalizeInput(text);
       if (!/^[a-zぁ-んー一-龠々-]+$/.test(value)) return;
@@ -2424,11 +2467,15 @@
 
     function submitTypingText(text) {
       if (!text) return;
+      const typingActive = state.running || state.rescue?.mode === "active";
+      if (!typingActive) return;
+      if (state.bossIntroTimer > 0) return;
       const now = performance.now();
       const mayDuplicate = /[^\x00-\x7F]/.test(text);
       if (mayDuplicate && text === state.lastTextInput && now - state.lastTextInputAt < 90) return;
       state.lastTextInput = text;
       state.lastTextInputAt = now;
+      recordTypedChars(text);
       if (state.rescue) handleRescueTyping(text);
       else handleTypingText(text);
     }
@@ -2493,6 +2540,7 @@
         for (let i = 0; i < 24; i++) addParticle(enemy.x, enemy.y, i % 2 ? enemy.kind.color : "#f5b84b", rand(100, 340), rand(0.4, 1), rand(4, 11));
       }
       const defeated = state.enemies.length;
+      state.totalKills += defeated;
       const expGain = state.enemies.reduce((sum, enemy) => sum + enemyExpValue(enemy, 1.55), 0);
       state.enemies.length = 0;
       state.bullets.length = 0;
@@ -2558,6 +2606,7 @@
       if (state.attackBoostTimer <= 0) state.attackBoostMultiplier = 1;
       state.faceTimer = Math.max(0, state.faceTimer - dt);
       state.invincibleTimer = Math.max(0, state.invincibleTimer - dt);
+      state.bossIntroTimer = Math.max(0, state.bossIntroTimer - dt);
       state.rescueCooldown = Math.max(0, state.rescueCooldown - dt);
       state.damageSoundTimer = Math.max(0, state.damageSoundTimer - dt);
       state.shake = Math.max(0, state.shake - dt * 32);
@@ -2634,11 +2683,11 @@
           enemy.hp = 0;
           state.combo = 0;
           state.shake = Math.max(state.shake, 13);
-        } else if (dist(enemy, state.player) < enemy.radius + state.player.radius && enemy.type === "boss") {
+        } else if (dist(enemy, state.player) < enemy.radius + state.player.radius && enemy.type === "boss" && state.bossIntroTimer <= 0) {
           if (state.time % 0.5 < dt) applyPlayerDamage(enemy.attack * 0.5, state.player.x, state.player.y - 45);
           state.shake = Math.max(state.shake, 8);
         }
-        if (!frozen && enemy.type === "boss") {
+        if (!frozen && enemy.type === "boss" && state.bossIntroTimer <= 0) {
           enemy.bossShotTimer -= dt;
           if (enemy.bossShotTimer <= 0) {
             fireBossBullet(enemy);
@@ -3340,6 +3389,27 @@
       ctx.restore();
     }
 
+    function drawBossIntroOverlay() {
+      if (state.bossIntroTimer <= 0 || state.rescue) return;
+      ctx.save();
+      const alpha = clamp(state.bossIntroTimer / 0.35, 0, 1);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(5, 7, 7, 0.48)";
+      ctx.fillRect(0, 0, state.w, state.h);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "1000 72px system-ui";
+      ctx.lineWidth = 9;
+      ctx.strokeStyle = "rgba(5, 7, 7, 0.9)";
+      ctx.fillStyle = "#ffebe8";
+      ctx.strokeText("ボスが現れた‼️", state.w / 2, state.h * 0.42);
+      ctx.fillText("ボスが現れた‼️", state.w / 2, state.h * 0.42);
+      ctx.font = "900 24px system-ui";
+      ctx.fillStyle = "#f5b84b";
+      ctx.fillText("タイピングスキルを駆使してやっつけよう❗️", state.w / 2, state.h * 0.42 + 72);
+      ctx.restore();
+    }
+
     function drawRescueProgressText(text, reading, x, y, maxWidth, lineHeight, font) {
       const readingIndex = currentRescueReadingIndex(reading);
       const coloredUntil = mapReadingProgressToTextIndex(text, reading, readingIndex);
@@ -3445,6 +3515,7 @@
       ctx.globalAlpha = 1;
       drawCrosshair();
       drawInputPrompt();
+      drawBossIntroOverlay();
       drawRescueOverlay();
       ctx.restore();
 
@@ -3476,9 +3547,9 @@
           if (state.rescue.mode === "active") state.rescue.input = state.rescue.input.slice(0, -1);
           return;
         }
-        if (!event.isComposing && event.key !== "Process") {
+        if (!event.isComposing && event.key !== "Process" && event.key.length === 1) {
           event.preventDefault();
-          handleRescueTyping(event.key);
+          submitTypingText(event.key);
         }
         return;
       }
