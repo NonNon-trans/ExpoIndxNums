@@ -637,14 +637,14 @@
       vacuums: [],
     };
 
-    const trashKinds = [
-      { label: "紙", color: "#e7dcc7", accent: "#b9a477" },
-      { label: "缶", color: "#9bd3d8", accent: "#477a83" },
-      { label: "瓶", color: "#8fcd72", accent: "#466b38" },
-      { label: "袋", color: "#d6cdfa", accent: "#7468ad" },
-      { label: "殻", color: "#f0b05d", accent: "#82562d" },
-      { label: "タイヤ", color: "#2c3030", accent: "#6a7471" },
-    ];
+   const trashKinds = [
+  { label: "紙", color: "#e7dcc7", accent: "#b9a477", move: "zigzag", speedMul: 1.15 },
+  { label: "缶", color: "#9bd3d8", accent: "#477a83", move: "straight", speedMul: 0.95 },
+  { label: "瓶", color: "#8fcd72", accent: "#466b38", move: "heavy", speedMul: 0.75 },
+  { label: "袋", color: "#d6cdfa", accent: "#7468ad", move: "float", speedMul: 0.85 },
+  { label: "殻", color: "#f0b05d", accent: "#82562d", move: "rush", speedMul: 1.25 },
+  { label: "タイヤ", color: "#2c3030", accent: "#6a7471", move: "orbit", speedMul: 1.05 },
+];
 
     const wordBank = [
       { display: "ごみ", answers: ["gomi", "ごみ"] },
@@ -1899,7 +1899,8 @@
         radius,
         maxHp: hp,
         hp,
-        speed: finalStageSpeed * speedLevel,
+        speed: finalStageSpeed * speedLevel * (kind.speedMul || 1),
+        move: kind.move || "straight",
         speedLevel,
         wobble: rand(0, Math.PI * 2),
         dashPhase: rand(0, Math.PI * 2),
@@ -2666,8 +2667,41 @@
           const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
           enemy.wobble += dt * (2.2 + state.stage * 0.08);
           const drift = enemy.speedLevel || 1;
-          enemy.vx = Math.cos(angle) * enemy.speed * bossCharge + Math.cos(enemy.wobble * 2.3) * 22 * drift;
-          enemy.vy = Math.sin(angle) * enemy.speed * bossCharge + Math.sin(enemy.wobble * 1.7) * 18 * drift;
+if (enemy.type !== "boss") {
+  const move = enemy.move || "straight";
+
+  if (move === "straight") {
+    enemy.vx = Math.cos(angle) * enemy.speed;
+    enemy.vy = Math.sin(angle) * enemy.speed;
+  } else if (move === "zigzag") {
+    enemy.vx = Math.cos(angle) * enemy.speed + Math.cos(enemy.wobble * 4.2) * 70 * drift;
+    enemy.vy = Math.sin(angle) * enemy.speed + Math.sin(enemy.wobble * 2.4) * 28 * drift;
+  } else if (move === "float") {
+    enemy.vx = Math.cos(angle) * enemy.speed * 0.85 + Math.cos(enemy.wobble * 1.4) * 90 * drift;
+    enemy.vy = Math.sin(angle) * enemy.speed * 0.85 + Math.sin(enemy.wobble * 2.1) * 55 * drift;
+  } else if (move === "heavy") {
+    enemy.vx = Math.cos(angle) * enemy.speed * 0.72;
+    enemy.vy = Math.sin(angle) * enemy.speed * 0.72;
+  } else if (move === "rush") {
+    const pulse = 0.65 + Math.max(0, Math.sin(enemy.wobble * 3.2)) * 1.25;
+    enemy.vx = Math.cos(angle) * enemy.speed * pulse;
+    enemy.vy = Math.sin(angle) * enemy.speed * pulse;
+  } else if (move === "orbit") {
+    const side = angle + Math.PI / 2;
+    enemy.vx = Math.cos(angle) * enemy.speed * 0.75 + Math.cos(side) * 85 * Math.sin(enemy.wobble * 2.6);
+    enemy.vy = Math.sin(angle) * enemy.speed * 0.75 + Math.sin(side) * 85 * Math.sin(enemy.wobble * 2.6);
+  }
+
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+} else {
+  enemy.vx = Math.cos(angle) * enemy.speed * bossCharge + Math.cos(enemy.wobble * 2.3) * 22 * drift;
+  enemy.vy = Math.sin(angle) * enemy.speed * bossCharge + Math.sin(enemy.wobble * 1.7) * 18 * drift;
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+  enemy.x = clamp(enemy.x, enemy.radius, state.w - enemy.radius);
+  enemy.y = clamp(enemy.y, 80, state.h - enemy.radius);
+}
           if (enemy.type !== "boss") {
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
