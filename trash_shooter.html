@@ -622,6 +622,7 @@
       last: 0,
       spawnTimer: 0,
       completed: 0,
+      thunderCount: 0,
       menuMode: "title",
       difficultyKey: "normal",
       englishWords: true,
@@ -635,6 +636,8 @@
       particles: [],
       floaters: [],
       vacuums: [],
+      thunderChain: null,
+      lightningEffects: [],
     };
 
    const trashKinds = [
@@ -1078,6 +1081,82 @@
       [196, 185, 174, 165].forEach((freq, i) => beep(freq, 0.12, "sawtooth", 0.035, 0.03 + i * 0.16));
       beep(1480, 0.035, "triangle", 0.02, 0.58);
       beep(1568, 0.035, "triangle", 0.02, 0.7);
+    }
+
+    function playThunderSound(index = 0) {
+
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      const bufferSize = audioCtx.sampleRate * 0.25;
+
+      const buffer = audioCtx.createBuffer(
+        1,
+        bufferSize,
+        audioCtx.sampleRate
+      );
+
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.7;
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const noiseGain = audioCtx.createGain();
+
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + 0.25
+      );
+
+      noise.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+
+      noise.start(now);
+
+      for (let i = 0; i < 4; i++) {
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sawtooth";
+
+        osc.frequency.setValueAtTime(
+          400 - i * 70,
+          now + i * 0.02
+        );
+
+        osc.frequency.exponentialRampToValueAtTime(
+          70,
+          now + i * 0.08
+        );
+
+        gain.gain.setValueAtTime(
+          0.0001,
+          now + i * 0.02
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+          0.2,
+          now + i * 0.03
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+          0.0001,
+          now + i * 0.10
+        );
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now + i * 0.02);
+        osc.stop(now + i * 0.12);
+      }
     }
 
     function startRescueBgm() {
@@ -1696,6 +1775,8 @@
       state.particles = [];
       state.floaters = [];
       state.vacuums = [];
+      state.thunderChain = null;
+      state.lightningEffects = [];
       startStage(0);
     }
 
@@ -1714,6 +1795,8 @@
       state.bullets.length = 0;
       state.enemyBullets.length = 0;
       state.powerups.length = 0;
+      state.thunderChain = null;
+      state.lightningEffects.length = 0;
       spawnEnemy("minion");
       showToast(`Stage ${index + 1}: ${stageNames[index]}`);
     }
@@ -2065,7 +2148,8 @@
       if (roll < 0.68) return "omni";
       if (roll < 0.81) return "freeze";
       if (roll < 0.90) return "bounce";
-      if (roll < 0.96) return "vacuum";
+      if (roll < 0.90) return "vacuum";
+      if (roll < 0.98) return "thunder";
       return "laser";
     }
 
@@ -2079,6 +2163,7 @@
       if (kind === "bounce") return "跳弾ショット";
       if (kind === "vacuum") return "掃除機";
       if (kind === "heal") return "HP回復";
+      if (kind === "thunder") return "雷撃";
       return "強化";
     }
 
@@ -2092,6 +2177,7 @@
       if (kind === "bounce") return "#ff9d2f";
       if (kind === "vacuum") return "#bac3c2";
       if (kind === "heal") return "#8fd14f";
+      if (kind === "thunder") return "#fff176";
       return "#ffcf5f";
     }
 
@@ -2158,6 +2244,17 @@
         }];
         addFloater(state.vacuums[0].x, state.vacuums[0].y - 52, "掃除機", "#b8c3b0");
         showToast("掃除機出現: 近くの敵を吸い込む");
+      } else if (powerup.kind === "thunder") {
+        state.thunderCount += 1;
+
+        addFloater(
+          powerup.x,
+          powerup.y,
+          `雷撃×${state.thunderCount}`,
+          "#fff176"
+        );
+
+        showToast("雷撃ストック獲得");
       } else if (powerup.kind === "heal") {
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
@@ -2168,6 +2265,48 @@
         addParticle(powerup.x, powerup.y, color, rand(90, 280), rand(0.35, 0.9), rand(3, 8));
       }
       powerup.life = 0;
+    }
+
+    function startThunderChain(x, y) {
+      const range = state.player.radius * 12;
+
+      const targets = state.enemies.filter((enemy) => {
+        if (enemy.hp <= 0) return false;
+        const d = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
+        return d <= range + enemy.radius;
+      })
+      .sort((a, b) => {
+        const da = Math.hypot(a.x - state.player.x, a.y - state.player.y);
+        const db = Math.hypot(b.x - state.player.x, b.y - state.player.y);
+        return da - db;
+      });
+
+      if (!targets.length) {
+        addFloater(state.player.x, state.player.y - 70, "不発", "#b8c3b0");
+        return;
+      }
+
+      state.thunderChain = {
+        targets,
+        index: 0,
+        timer: 0,
+        interval: 0.15
+      };
+
+      state.shake = Math.max(state.shake, 18);
+      addFloater(state.player.x, state.player.y - 82, `雷撃 ${targets.length}体`, "#fff176");
+      playThunderSound(0);
+    }
+
+    function useThunder() {
+      if (state.thunderCount <= 0) return;
+
+      state.thunderCount -= 1;
+
+      startThunderChain(
+        state.player.x,
+        state.player.y
+      );
     }
 
     function addParticle(x, y, color, speed = 90, life = 0.45, size = rand(2, 6)) {
@@ -2206,6 +2345,60 @@
         }
       }
       state.powerups = state.powerups.filter((powerup) => powerup.life > 0);
+    }
+
+    function updateThunderChain(dt) {
+      if (!state.thunderChain) return;
+
+      const chain = state.thunderChain;
+      chain.timer -= dt;
+
+      if (chain.timer > 0) return;
+
+      while (chain.index < chain.targets.length) {
+        const enemy = chain.targets[chain.index];
+        chain.index += 1;
+
+        if (!state.enemies.includes(enemy)) continue;
+        if (enemy.hp <= 0) continue;
+
+        state.lightningEffects.push({
+          fromX: state.player.x,
+          fromY: state.player.y,
+          toX: enemy.x,
+          toY: enemy.y,
+          life: 0.20,
+          maxLife: 0.20
+        });
+
+        hitEnemy(enemy, enemy.hp + 9999, {
+          reassign: false,
+          quiet: true
+        });
+
+        state.enemies = state.enemies.filter((target) => target.hp > 0);
+
+        state.shake = Math.max(state.shake, 14);
+        addFloater(enemy.x, enemy.y - enemy.radius, "雷撃", "#fff176");
+
+        for (let i = 0; i < 22; i += 1) {
+          addParticle(enemy.x, enemy.y, i % 2 ? "#fff176" : "#ffffff", rand(120, 360), rand(0.22, 0.55), rand(3, 8));
+        }
+
+        playThunderSound(chain.index);
+
+        chain.timer = chain.interval;
+        return;
+      }
+
+      state.thunderChain = null;
+    }
+
+    function updateLightningEffects(dt) {
+      for (const fx of state.lightningEffects) {
+        fx.life -= dt;
+      }
+      state.lightningEffects = state.lightningEffects.filter((fx) => fx.life > 0);
     }
 
     function shouldAdvanceForKill(enemy) {
@@ -2667,45 +2860,37 @@
           const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
           enemy.wobble += dt * (2.2 + state.stage * 0.08);
           const drift = enemy.speedLevel || 1;
-if (enemy.type !== "boss") {
-  const move = enemy.move || "straight";
 
-  if (move === "straight") {
-    enemy.vx = Math.cos(angle) * enemy.speed;
-    enemy.vy = Math.sin(angle) * enemy.speed;
-  } else if (move === "zigzag") {
-    enemy.vx = Math.cos(angle) * enemy.speed + Math.cos(enemy.wobble * 4.2) * 70 * drift;
-    enemy.vy = Math.sin(angle) * enemy.speed + Math.sin(enemy.wobble * 2.4) * 28 * drift;
-  } else if (move === "float") {
-    enemy.vx = Math.cos(angle) * enemy.speed * 0.85 + Math.cos(enemy.wobble * 1.4) * 90 * drift;
-    enemy.vy = Math.sin(angle) * enemy.speed * 0.85 + Math.sin(enemy.wobble * 2.1) * 55 * drift;
-  } else if (move === "heavy") {
-    enemy.vx = Math.cos(angle) * enemy.speed * 0.72;
-    enemy.vy = Math.sin(angle) * enemy.speed * 0.72;
-  } else if (move === "rush") {
-    const pulse = 0.65 + Math.max(0, Math.sin(enemy.wobble * 3.2)) * 1.25;
-    enemy.vx = Math.cos(angle) * enemy.speed * pulse;
-    enemy.vy = Math.sin(angle) * enemy.speed * pulse;
-  } else if (move === "orbit") {
-    const side = angle + Math.PI / 2;
-    enemy.vx = Math.cos(angle) * enemy.speed * 0.75 + Math.cos(side) * 85 * Math.sin(enemy.wobble * 2.6);
-    enemy.vy = Math.sin(angle) * enemy.speed * 0.75 + Math.sin(side) * 85 * Math.sin(enemy.wobble * 2.6);
-  }
-
-  enemy.x += enemy.vx * dt;
-  enemy.y += enemy.vy * dt;
-} else {
-  enemy.vx = Math.cos(angle) * enemy.speed * bossCharge + Math.cos(enemy.wobble * 2.3) * 22 * drift;
-  enemy.vy = Math.sin(angle) * enemy.speed * bossCharge + Math.sin(enemy.wobble * 1.7) * 18 * drift;
-  enemy.x += enemy.vx * dt;
-  enemy.y += enemy.vy * dt;
-  enemy.x = clamp(enemy.x, enemy.radius, state.w - enemy.radius);
-  enemy.y = clamp(enemy.y, 80, state.h - enemy.radius);
-}
           if (enemy.type !== "boss") {
+            const move = enemy.move || "straight";
+
+            if (move === "straight") {
+              enemy.vx = Math.cos(angle) * enemy.speed;
+              enemy.vy = Math.sin(angle) * enemy.speed;
+            } else if (move === "zigzag") {
+              enemy.vx = Math.cos(angle) * enemy.speed + Math.cos(enemy.wobble * 4.2) * 70 * drift;
+              enemy.vy = Math.sin(angle) * enemy.speed + Math.sin(enemy.wobble * 2.4) * 28 * drift;
+            } else if (move === "float") {
+              enemy.vx = Math.cos(angle) * enemy.speed * 0.85 + Math.cos(enemy.wobble * 1.4) * 90 * drift;
+              enemy.vy = Math.sin(angle) * enemy.speed * 0.85 + Math.sin(enemy.wobble * 2.1) * 55 * drift;
+            } else if (move === "heavy") {
+              enemy.vx = Math.cos(angle) * enemy.speed * 0.72;
+              enemy.vy = Math.sin(angle) * enemy.speed * 0.72;
+            } else if (move === "rush") {
+              const pulse = 0.65 + Math.max(0, Math.sin(enemy.wobble * 3.2)) * 1.25;
+              enemy.vx = Math.cos(angle) * enemy.speed * pulse;
+              enemy.vy = Math.sin(angle) * enemy.speed * pulse;
+            } else if (move === "orbit") {
+              const side = angle + Math.PI / 2;
+              enemy.vx = Math.cos(angle) * enemy.speed * 0.75 + Math.cos(side) * 85 * Math.sin(enemy.wobble * 2.6);
+              enemy.vy = Math.sin(angle) * enemy.speed * 0.75 + Math.sin(side) * 85 * Math.sin(enemy.wobble * 2.6);
+            }
+
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
           } else {
+            enemy.vx = Math.cos(angle) * enemy.speed * bossCharge + Math.cos(enemy.wobble * 2.3) * 22 * drift;
+            enemy.vy = Math.sin(angle) * enemy.speed * bossCharge + Math.sin(enemy.wobble * 1.7) * 18 * drift;
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
             enemy.x = clamp(enemy.x, enemy.radius, state.w - enemy.radius);
@@ -2744,6 +2929,8 @@ if (enemy.type !== "boss") {
       }
       state.enemyBullets = state.enemyBullets.filter((shot) => shot.life > 0 && shot.x > -60 && shot.x < state.w + 60 && shot.y > -80 && shot.y < state.h + 80);
       updatePowerups(dt);
+      updateThunderChain(dt);
+      updateLightningEffects(dt);
 
       for (const bullet of state.bullets) {
         const lockedEnemy = state.enemies.find((enemy) => enemy.id === bullet.targetId);
@@ -2832,7 +3019,10 @@ if (enemy.type !== "boss") {
       } else if (state.omniTimer > 0) {
         ui.powerStatus.textContent = `八方位 ${Math.ceil(state.omniTimer)}`;
       } else {
-        ui.powerStatus.textContent = "なし";
+        ui.powerStatus.textContent = 
+        state.thunderCount > 0
+          ? `⚡${state.thunderCount}`
+          : "なし";
       }
     }
 
@@ -3125,6 +3315,41 @@ if (enemy.type !== "boss") {
       }
     }
 
+    function drawLightningEffects() {
+      for (const fx of state.lightningEffects) {
+        const alpha = clamp(fx.life / fx.maxLife, 0, 1);
+
+        ctx.save();
+        ctx.globalAlpha = alpha * (0.65 + Math.random() * 0.35);
+        ctx.strokeStyle = "#c8f5ff";
+        ctx.lineWidth = 7;
+        ctx.shadowColor = "#fff176";
+        ctx.shadowBlur = 28;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(fx.fromX, fx.fromY);
+
+        const segments = 5;
+        for (let i = 1; i < segments; i += 1) {
+          const t = i / segments;
+          const x = fx.fromX + (fx.toX - fx.fromX) * t + rand(-24, 24);
+          const y = fx.fromY + (fx.toY - fx.fromY) * t + rand(-24, 24);
+          ctx.lineTo(x, y);
+        }
+
+        ctx.lineTo(fx.toX, fx.toY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
     function strokeArrow(fromX, fromY, toX, toY, size = 5) {
       const angle = Math.atan2(toY - fromY, toX - fromX);
       ctx.beginPath();
@@ -3241,6 +3466,16 @@ if (enemy.type !== "boss") {
         ctx.moveTo(-r * 0.78, 0);
         ctx.lineTo(r * 0.78, 0);
         ctx.stroke();
+      } else if (kind === "thunder") {
+        ctx.beginPath();
+        ctx.moveTo(r * 0.18, -r);
+        ctx.lineTo(-r * 0.35, r * 0.05);
+        ctx.lineTo(r * 0.02, r * 0.05);
+        ctx.lineTo(-r * 0.22, r);
+        ctx.lineTo(r * 0.55, -r * 0.18);
+        ctx.lineTo(r * 0.12, -r * 0.18);
+        ctx.closePath();
+        ctx.stroke();
       }
     }
 
@@ -3289,6 +3524,38 @@ if (enemy.type !== "boss") {
       ctx.stroke();
       ctx.fillStyle = "#f5f7ef";
       ctx.fillText(text, state.w / 2, y + 19);
+      ctx.restore();
+    }
+
+    function drawThunderReadyNotice() {
+      if (state.thunderCount <= 0 || !state.running || state.rescue) return;
+
+      const alpha = 0.45 + Math.sin(state.time * 4) * 0.35;
+      const text = "⚡️スペースキーでサンダーアタック⚡️";
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "1000 30px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const x = state.w / 2;
+      const y = state.h * 0.38;
+      const width = ctx.measureText(text).width + 34;
+
+      ctx.fillStyle = "rgba(13, 18, 17, 0.62)";
+      ctx.strokeStyle = "rgba(255, 241, 118, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x - width / 2, y - 24, width, 48, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff176";
+      ctx.shadowColor = "#fff176";
+      ctx.shadowBlur = 18;
+      ctx.fillText(text, x, y);
+
       ctx.restore();
     }
 
@@ -3527,6 +3794,7 @@ if (enemy.type !== "boss") {
         ctx.fill();
       }
       for (const enemy of state.enemies) drawEnemy(enemy);
+      drawLightningEffects();
       drawPowerups();
       for (const p of state.particles) {
         ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
@@ -3549,6 +3817,7 @@ if (enemy.type !== "boss") {
       ctx.globalAlpha = 1;
       drawCrosshair();
       drawInputPrompt();
+      drawThunderReadyNotice();
       drawBossIntroOverlay();
       drawRescueOverlay();
       ctx.restore();
@@ -3585,6 +3854,13 @@ if (enemy.type !== "boss") {
           event.preventDefault();
           submitTypingText(event.key);
         }
+        return;
+      }
+      if (event.code === "Space" && state.running) {
+        event.preventDefault();
+
+        useThunder();
+
         return;
       }
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.code)) {
