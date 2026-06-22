@@ -607,6 +607,12 @@
       explosiveTimer: 0,
       omniTimer: 0,
       laserTimer: 0,
+      flameTimer: 0,
+      waterTimer: 0,
+      waterTickTimer: 0,
+      flameTickTimer: 0,
+      flameSoundTimer: 0,
+      waterSoundTimer: 0,
       bounceTimer: 0,
       laserAngle: Math.PI / 2,
       laserTickTimer: 0,
@@ -1000,6 +1006,10 @@
           if (!playFunnyTypeMiss()) {
             playFallbackTypeMiss();
           }
+        } else if (kind === "flame") {
+          beep(110, 0.08, "sawtooth", 0.05);
+          beep(90, 0.10, "sawtooth", 0.04, 0.02);
+          beep(70, 0.12, "triangle", 0.03, 0.04);
         }
       } catch {
         // Audio can be unavailable until the browser receives a user gesture.
@@ -1159,6 +1169,66 @@
       }
     }
 
+    function playFlameSound() {
+      if (!audioCtx) return;
+
+      const buffer = audioCtx.createBuffer(
+        1,
+        audioCtx.sampleRate * 0.08,
+        audioCtx.sampleRate
+      );
+
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.2; 
+      }
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.08;
+
+      source.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      source.start();
+    }
+
+    function playWaterSound() {
+      if (!audioCtx) return;
+
+      const buffer = audioCtx.createBuffer(
+        1,
+        audioCtx.sampleRate * 0.15,
+        audioCtx.sampleRate
+      );
+
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.25;
+      }
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1800;
+      filter.Q.value = 0.8;
+
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.12;
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      source.start();
+    }
+
     function startRescueBgm() {
       try {
         getAudio();
@@ -1254,7 +1324,7 @@
     }
 
     function applyPlayerDamage(amount, x, y) {
-      if (state.invincibleTimer > 0 || state.laserTimer > 0) {
+      if (state.invincibleTimer > 0 || state.laserTimer > 0 || state.waterTimer > 0) {
         addFloater(x, y, "無効", "#47b7c8");
         return;
       }
@@ -2142,16 +2212,7 @@
     }
 
     function pickPowerupKind() {
-      const roll = Math.random();
-      if (roll < 0.18) return "shield";
-      if (roll < 0.36) return "pierce";
-      if (roll < 0.54) return "explosive";
-      if (roll < 0.68) return "omni";
-      if (roll < 0.81) return "freeze";
-      if (roll < 0.90) return "bounce";
-      if (roll < 0.90) return "vacuum";
-      if (roll < 0.98) return "thunder";
-      return "laser";
+      return "water";
     }
 
     function powerupLabel(kind) {
@@ -2165,6 +2226,8 @@
       if (kind === "vacuum") return "掃除機";
       if (kind === "heal") return "HP回復";
       if (kind === "thunder") return "雷撃";
+      if (kind === "flame") return "火炎放射";
+      if (kind === "water") return "水鉄砲";
       return "強化";
     }
 
@@ -2179,6 +2242,8 @@
       if (kind === "vacuum") return "#bac3c2";
       if (kind === "heal") return "#8fd14f";
       if (kind === "thunder") return "#fff176";
+      if (kind === "flame") return "#ff6a00";
+      if (kind === "water") return "#47b7c8";
       return "#ffcf5f";
     }
 
@@ -2256,6 +2321,27 @@
         );
 
         showToast("雷撃ストック獲得");
+      } else if (powerup.kind === "flame") {
+        state.flameTimer = Math.max(state.flameTimer, 10);
+        state.flameTickTimer = 0;
+        state.invincibleTimer = Math.max(state.invincibleTimer, 10);
+
+        addFloater(
+          powerup.x,
+          powerup.y,
+          "火炎放射",
+          "#ff6a00"
+        );
+
+        showToast(
+          "火炎放射発動: 10秒間焼き尽くせ"
+        );
+      } else if (powerup.kind === "water") {
+        state.waterTimer = Math.max(state.waterTimer, 10);
+        state.waterTickTimer = 0;
+
+        addFloater(powerup.x, powerup.y, "水鉄砲", "#47b7c8");
+        showToast("水鉄砲起動: 10秒間水で押し流す");
       } else if (powerup.kind === "heal") {
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
@@ -2404,7 +2490,88 @@
       for (const fx of state.lightningEffects) {
         fx.life -= dt;
       }
+
       state.lightningEffects = state.lightningEffects.filter((fx) => fx.life > 0);
+    }
+
+    function updateFlame(dt) {
+      if (state.flameTimer <= 0) return;
+
+      state.flameTickTimer -= dt;
+      if (state.flameTickTimer > 0) return;
+      state.flameTickTimer = 0.08;
+
+      const range = 720;
+      const spread = Math.PI / 4;
+      const baseAngle = normalizeAngle(state.laserAngle);
+
+      for (const enemy of [...state.enemies]) {
+        const dx = enemy.x - state.player.x;
+        const dy = enemy.y - state.player.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > range + enemy.radius) continue;
+
+        const angle = normalizeAngle(Math.atan2(dy, dx));
+        let diff = Math.abs(angle - baseAngle);
+        diff = Math.min(diff, Math.PI * 2 - diff);
+
+        if (diff > spread) continue;
+
+        const killed = hitEnemy(enemy, playerAttackDamage() * 0.28, {
+          reassign: false,
+          quiet: true
+        });
+
+        addParticle(enemy.x, enemy.y, "#ff6a00", rand(80, 220), rand(0.18, 0.45), rand(3, 8));
+        addParticle(enemy.x, enemy.y, "#ffd166", rand(60, 180), rand(0.16, 0.36), rand(2, 6));
+
+        if (killed) {
+          state.enemies = state.enemies.filter((target) => target !== enemy);
+        }
+      }
+    }
+
+    function updateWater(dt) {
+      if (state.waterTimer <= 0) return;
+
+      state.waterTickTimer -= dt;
+      if (state.waterTickTimer > 0) return;
+      state.waterTickTimer = 0.06;
+
+      const range = 560;
+      const spread = Math.PI / 6;
+      const baseAngle = normalizeAngle(state.laserAngle);
+
+      for (const enemy of [...state.enemies]) {
+        const dx = enemy.x - state.player.x;
+        const dy = enemy.y - state.player.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > range + enemy.radius) continue;
+
+        const angle = normalizeAngle(Math.atan2(dy, dx));
+        let diff = Math.abs(angle - baseAngle);
+        diff = Math.min(diff, Math.PI * 2 - diff);
+
+        if (diff > spread) continue;
+
+        const push = 18;
+        enemy.x += Math.cos(baseAngle) * push;
+        enemy.y += Math.sin(baseAngle) * push;
+
+        const killed = hitEnemy(enemy, playerAttackDamage() * 0.16, {
+          reassign: false,
+          quiet: true
+        });
+
+        addParticle(enemy.x, enemy.y, "#47b7c8", rand(90, 260), rand(0.18, 0.42), rand(2, 6));
+        addParticle(enemy.x, enemy.y, "#bff3ff", rand(70, 220), rand(0.14, 0.34), rand(2, 5));
+
+        if (killed) {
+          state.enemies = state.enemies.filter((target) => target !== enemy);
+        }
+      }
     }
 
     function shouldAdvanceForKill(enemy) {
@@ -2555,6 +2722,19 @@
         if (killed) {
           state.enemies = state.enemies.filter((target) => target !== enemy);
         }
+      }
+    }
+
+    function updateLaserDirection(dt, keyX, keyY) {
+      if (!keyX && !keyY) return;
+
+      const angle = normalizeAngle(state.laserAngle);
+      const tangentX = -Math.sin(angle);
+      const tangentY = Math.cos(angle);
+      const rotation = clamp(keyX * tangentX + keyY * tangentY, -1, 1);
+
+      if (rotation) {
+        state.laserAngle = normalizeAngle(state.laserAngle + rotation * 3.4 * dt);
       }
     }
 
@@ -2805,6 +2985,8 @@
       state.explosiveTimer = Math.max(0, state.explosiveTimer - dt);
       state.omniTimer = Math.max(0, state.omniTimer - dt);
       state.laserTimer = Math.max(0, state.laserTimer - dt);
+      state.flameTimer = Math.max(0, state.flameTimer - dt);
+      state.waterTimer = Math.max(0, state.waterTimer - dt);
       state.bounceTimer = Math.max(0, state.bounceTimer - dt);
       state.attackBoostTimer = Math.max(0, state.attackBoostTimer - dt);
       if (state.attackBoostTimer <= 0) state.attackBoostMultiplier = 1;
@@ -2821,14 +3003,34 @@
       if (state.keys.has("ArrowRight")) moveX += 1;
       if (state.keys.has("ArrowUp")) moveY -= 1;
       if (state.keys.has("ArrowDown")) moveY += 1;
-      if (state.laserTimer > 0) {
-        updateLaser(dt);
+      if (state.laserTimer > 0 || state.flameTimer > 0 || state.waterTimer > 0) {
+        updateLaserDirection(dt, moveX, moveY);
       } else if (moveX || moveY) {
         const len = Math.hypot(moveX, moveY) || 1;
         state.player.x = clamp(state.player.x + (moveX / len) * state.player.speed * dt, 28, state.w - 28);
         state.player.y = clamp(state.player.y + (moveY / len) * state.player.speed * dt, 88, state.h - 30);
       }
 
+      if (state.laserTimer > 0) updateLaser(dt);
+      if (state.flameTimer > 0) {
+        updateFlame(dt);
+
+        state.flameSoundTimer -= dt;
+        if (state.flameSoundTimer <= 0) {
+          playFlameSound();
+          state.flameSoundTimer = 0.12;
+        }
+      }
+      if (state.waterTimer > 0) {
+        updateWater(dt);
+
+        state.waterSoundTimer -= dt;
+
+        if (state.waterTimer > 0 && state.waterSoundTimer <= 0) {
+          playWaterSound();
+          state.waterSoundTimer = 0.04;
+        }
+      }
       if (state.phase === "waves") {
         state.spawnTimer -= dt;
         const spawnEvery = Math.max(0.16, (1.05 - state.stage * 0.065 - state.phaseKills * 0.007) / difficultyRate());
@@ -3029,6 +3231,8 @@
         ui.powerStatus.textContent = `跳弾 ${Math.ceil(state.bounceTimer)}`;
       } else if (state.omniTimer > 0) {
         ui.powerStatus.textContent = `八方位 ${Math.ceil(state.omniTimer)}`;
+      } else if (state.flameTimer > 0) {
+        ui.powerStatus.textContent = `火炎 ${Math.ceil(state.flameTimer)}`;
       } else {
         ui.powerStatus.textContent = 
         state.thunderCount > 0
@@ -3216,9 +3420,22 @@
       const y = state.player.y;
       ctx.save();
       ctx.translate(x, y);
-      const barrierActive = state.invincibleTimer > 0 || state.laserTimer > 0;
+      const barrierActive = 
+      state.invincibleTimer > 0 ||
+      state.laserTimer > 0 ||
+      state.flameTimer > 0 ||
+      state.waterTimer > 0;
+      const barrierColor =
+        state.waterTimer > 0
+          ? "rgba(127,232,255,0.45)"
+          : "rgba(71,183,200,0.45)";
       ctx.fillStyle = barrierActive ? "#dff4ef" : "#e8f5d4";
-      ctx.strokeStyle = barrierActive ? "#47b7c8" : "#8fd14f";
+      ctx.strokeStyle = 
+        state.waterTimer > 0
+          ? "#7fe8ff"
+          : barrierActive
+            ? "#47b7c8"
+            : "#8fd14f";
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.arc(0, 0, state.player.radius, 0, Math.PI * 2);
@@ -3254,7 +3471,7 @@
         ctx.stroke();
       }
       if (barrierActive) {
-        ctx.strokeStyle = "rgba(71,183,200,0.45)";
+        ctx.strokeStyle = barrierColor;
         ctx.lineWidth = 7;
         ctx.beginPath();
         ctx.arc(0, 0, state.player.radius + 13 + Math.sin(state.time * 8) * 2, 0, Math.PI * 2);
@@ -3311,6 +3528,116 @@
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawWater() {
+      if (state.waterTimer <= 0 || !state.running) return;
+
+      const angle = normalizeAngle(state.laserAngle);
+      const range = 560;
+      const spread = Math.PI / 7;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.translate(state.player.x, state.player.y);
+      ctx.rotate(angle);
+
+      for (let i = 0; i < 18; i++) {
+        const t = i / 17;
+        const x = range * t;
+        const wave = Math.sin(state.time * 20 + i) * 10 * t;
+        const width = Math.sin(t * Math.PI) * range * 0.08 + 5;
+
+        ctx.fillStyle = `rgba(71, 183, 200, ${0.42 * (1 - t)})`;
+        ctx.beginPath();
+        ctx.ellipse(x, wave, width, 10 + 18 * t, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = "rgba(191, 243, 255, 0.85)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+
+      for (let i = 0; i < 5; i++) {
+        const offset = (i - 2) * 10;
+        ctx.beginPath();
+        ctx.moveTo(0, offset);
+        ctx.lineTo(range, offset * 0.35 + Math.sin(state.time * 16 + i) * 12);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawFlame() {
+      if (state.flameTimer <= 0 || !state.running) return;
+
+      const angle = normalizeAngle(state.laserAngle);
+      const range = 810;
+      const spread = Math.PI / 5;
+      const flicker = 0.88 + Math.random() * 0.22;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.translate(state.player.x, state.player.y);
+      ctx.rotate(angle);
+
+      for (let i = 0; i < 18; i++) {
+        const t = i/17;
+        const x = range * t * flicker;
+        const wave = Math.sin(state.time * 18 + i * 0.9) * 18 * t;
+        const width = Math.sin(t * Math.PI) * range * 0.18 + 8;
+        const alpha = (1 - t) * 0.38;
+
+        ctx.fillStyle = `rgba(255, ${90 + i * 5}, 0, ${alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(
+          x,
+          wave,
+          width,
+          18 + 34 * t,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 22; i++) {
+        const t = Math.random();
+        const x = range * t;
+        const y = (Math.random() - 0.5) * range * 0.34 * (1 - t * 0.25);
+        const size = 6 + Math.random() * 18 * (1 - t);
+
+        ctx.fillStyle = Math.random() < 0.5
+          ? "rgba(255, 220, 80, 0.65)"
+          :"rgba(255, 70, 0, 0.5)";
+        
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = "rgba(255, 230, 120, 0.75)";
+      ctx.lineWidth = 4;
+      ctx.shadowColor = "#ff6a00";
+      ctx.shadowBlur = 18;
+
+      for (let i = 0; i < 5; i++) {
+        const offset = (i - 2) * 18;
+        ctx.beginPath();
+        ctx.moveTo(0, offset * 0.15);
+        for (let x = 24; x <= range; x += 34) {
+          const t = x / range;
+          ctx.lineTo(
+            x,
+            offset * (1 - t * 0.3) + Math.sin(state.time * 20 + x * 0.08 + i) * 16
+          );
+        }
+        ctx.restore();
+      }
+
       ctx.restore();
     }
 
@@ -3511,7 +3838,50 @@
         ctx.lineTo(r * 0.12, -r * 0.18);
         ctx.closePath();
         ctx.stroke();
-      }
+      } else if (kind === "flame") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r);
+        ctx.bezierCurveTo(
+          r * 0.8, -r * 0.7,
+          r * 1.0, r * 0.1,
+          0, r
+        );
+        ctx.bezierCurveTo(
+          -r * 1.0, r * 0.1,
+          -r * 0.8, -r * 0.7,
+          0, -r
+        );
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.45);
+        ctx.bezierCurveTo(
+          r * 0.25, -r * 0.2,
+          r * 0.2, r * 0.2,
+          0, r * 0.45
+        );
+        ctx.bezierCurveTo(
+          -r * 0.2, r * 0.2,
+          -r * 0.25, -r * 0.2,
+          0, -r * 0.45
+        );
+
+        ctx.stroke();
+      } else if (kind === "water") {
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-r, i * r * 0.35);
+          ctx.bezierCurveTo(
+            -r * 0.5,
+            i * r * 0.35 - r * 0.3,
+            r * 0.2,
+            i * r * 0.35 + r * 0.3,
+            r,
+            i * r * 0.35
+          );
+    
+          ctx.stroke();
+  }
+}
     }
 
     function drawPowerups() {
@@ -3841,6 +4211,8 @@
       ctx.globalAlpha = 1;
       drawVacuums();
       drawBase();
+      drawFlame();
+      drawWater();
       drawLaser();
       for (const f of state.floaters) {
         ctx.globalAlpha = clamp(f.life / f.maxLife, 0, 1);
