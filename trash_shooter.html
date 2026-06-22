@@ -2260,7 +2260,6 @@
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
       }
-      state.shake = Math.max(state.shake, 12);
       const color = powerupColor(powerup.kind);
       for (let i = 0; i < 34; i++) {
         addParticle(powerup.x, powerup.y, color, rand(90, 280), rand(0.35, 0.9), rand(3, 8));
