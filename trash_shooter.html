@@ -2212,7 +2212,18 @@
     }
 
     function pickPowerupKind() {
-      return "water";
+      const roll = Math.random();
+      if (roll < 0.10) return "shield";
+      if (roll < 0.20) return "pierce";
+      if (roll < 0.30) return "explosive";
+      if (roll < 0.40) return "omni";
+      if (roll < 0.50) return "freeze";
+      if (roll < 0.60) return "bounce";
+      if (roll < 0.68) return "vacuum";
+      if (roll < 0.76) return "thunder";
+      if (roll < 0.84) return "flame";
+      if (roll < 0.92) return "water";
+      return "laser";
     }
 
     function powerupLabel(kind) {
