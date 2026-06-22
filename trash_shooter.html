@@ -1989,6 +1989,7 @@
         dashPhase: rand(0, Math.PI * 2),
         freezeTimer: 0,
         iceBreakTimer: 0,
+        faceTimer: 0,
         bossShotTimer: rand(1, 3) / difficultyRate(),
         powerupHitCount: 0,
         nextPowerupHit: Math.floor(rand(3, 7)),
@@ -2418,6 +2419,10 @@
       const awardExp = options.awardExp !== false;
       enemy.hp -= damage;
       state.clean = clamp(state.clean + damage * 0.025, 0, 100);
+      if (enemy.type === "boss") {
+        enemy.faceTimer = 1;
+        state.shake = Math.max(state.shake, 8);
+      }
       if (!quiet) addFloater(enemy.x, enemy.y - enemy.radius, `${Math.round(damage)}`, "#e8f5d4");
       for (let i = 0; i < (quiet ? 3 : 8); i++) addParticle(enemy.x, enemy.y, enemy.kind.color, rand(40, 160), rand(0.18, 0.55));
       if (enemy.hp <= 0) {
@@ -2849,6 +2854,7 @@
 
       for (const enemy of state.enemies) {
         const frozen = (enemy.freezeTimer || 0) > 0;
+        enemy.faceTimer = Math.max(0, (enemy.faceTimer || 0) - dt);
         if (frozen) {
           enemy.freezeTimer = Math.max(0, enemy.freezeTimer - dt);
           enemy.vx = 0;
@@ -3098,15 +3104,39 @@
       }
 
       ctx.fillStyle = "#101312";
-      ctx.beginPath();
-      ctx.arc(-enemy.radius * 0.28, -enemy.radius * 0.12, Math.max(4, enemy.radius * 0.12), 0, Math.PI * 2);
-      ctx.arc(enemy.radius * 0.28, -enemy.radius * 0.12, Math.max(4, enemy.radius * 0.12), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#101312";
-      ctx.lineWidth = Math.max(2, enemy.radius * 0.06);
-      ctx.beginPath();
-      ctx.arc(0, enemy.radius * 0.16, enemy.radius * 0.28, 0.1, Math.PI - 0.1);
-      ctx.stroke();
+
+      if (enemy.type === "boss" && (enemy.faceTimer || 0) > 0) {
+        ctx.strokeStyle = "#101312";
+        ctx.lineWidth = Math.max(3, enemy.radius * 0.08);
+        ctx.lineCap = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(-enemy.radius * 0.42, -enemy.radius * 0.22);
+        ctx.lineTo(-enemy.radius * 0.18, enemy.radius * 0.02);
+        ctx.moveTo(-enemy.radius * 0.18, -enemy.radius * 0.22);
+        ctx.lineTo(-enemy.radius * 0.42, enemy.radius * 0.02);
+
+        ctx.moveTo(enemy.radius * 0.18, -enemy.radius * 0.22);
+        ctx.lineTo(enemy.radius * 0.42, enemy.radius * 0.02);
+        ctx.moveTo(enemy.radius * 0.42, -enemy.radius * 0.22);
+        ctx.lineTo(enemy.radius * 0.18, enemy.radius * 0.02);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, enemy.radius * 0.42, enemy.radius * 0.24, Math.PI + 0.2, Math.PI * 2 - 0.2);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(-enemy.radius * 0.28, -enemy.radius * 0.12, Math.max(4, enemy.radius * 0.12), 0, Math.PI * 2);
+        ctx.arc(enemy.radius * 0.28, -enemy.radius * 0.12, Math.max(4, enemy.radius * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#101312";
+        ctx.lineWidth = Math.max(2, enemy.radius * 0.06);
+        ctx.beginPath();
+        ctx.arc(0, enemy.radius * 0.16, enemy.radius * 0.28, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+      }
 
       ctx.fillStyle = "#f5f7ef";
       ctx.font = `800 ${Math.max(10, enemy.radius * 0.34)}px system-ui`;
