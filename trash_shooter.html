@@ -644,6 +644,7 @@
       vacuums: [],
       thunderChain: null,
       lightningEffects: [],
+      blackholes: [],
     };
 
    const trashKinds = [
@@ -699,7 +700,7 @@
       { display: "stainless", answers: ["stainless"] },
       { display: "clarify", answers: ["clarify"] },
       { display: "ライオン", answers: ["raion", "lion", "らいおん"] },
-      { display: "コアラ", answers: ["koara", "coala", "koala", "こあら"] },
+      { display: "コアラ", answers: ["koara", "こあら"] },
       { display: "アジト", answers: ["ajito", "azito", "あじと"] },
       { display: "ペガサス", answers: ["pegasasu", "pegasus", "ぺがさす"] },
       { display: "巻き舌", answers: ["makijita", "makizita", "まきじた"] },
@@ -894,6 +895,7 @@
     ];
 
     let audioCtx = null;
+    let flameLoopNodes = null;
     let bgmTimer = null;
     let rescueBgmTimer = null;
     let bgmMode = "normal";
@@ -1093,7 +1095,7 @@
       beep(1568, 0.035, "triangle", 0.02, 0.7);
     }
 
-    function playThunderSound(index = 0) {
+    function playThunderSound() {
 
       if (!audioCtx) return;
 
@@ -1170,30 +1172,139 @@
     }
 
     function playFlameSound() {
-      if (!audioCtx) return;
+      const audio = getAudio();
+      const now = audio.currentTime;
 
-      const buffer = audioCtx.createBuffer(
+      const duration = 0.16;
+
+      const buffer = audio.createBuffer(
         1,
-        audioCtx.sampleRate * 0.08,
-        audioCtx.sampleRate
+        audio.sampleRate * duration,
+        audio.sampleRate
       );
 
       const data = buffer.getChannelData(0);
 
       for (let i = 0; i < data.length; i++) {
-        data[i] = (Math.random() * 2 - 1) * 0.2; 
+        const t = i / data.length;
+        const fade = 1 - t;
+        data[i] = (Math.random() * 2 - 1) * 0.45 * fade;
       }
 
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
+      const noise = audio.createBufferSource();
+      noise.buffer = buffer;
 
-      const gain = audioCtx.createGain();
-      gain.gain.value = 0.08;
+      const filter = audio.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(420, now);
+      filter.frequency.exponentialRampToValueAtTime(180, now + duration);
+      filter.Q.value = 0.6;
 
-      source.connect(gain);
-      gain.connect(audioCtx.destination);
+      const gain = audio.createGain();
+      gain.gain.setValueAtTime(0.11, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
-      source.start();
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audio.destination);
+
+      noise.start(now);
+
+      const rumble = audio.createOscillator();
+      const rumbleGain = audio.createGain();
+
+      rumble.type = "sawtooth";
+      rumble.frequency.setValueAtTime(75 + Math.random() * 25, now);
+
+      rumbleGain.gain.setValueAtTime(0.035, now);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      rumble.connect(rumbleGain);
+      rumbleGain.connect(audio.destination);
+
+      rumble.start(now);
+      rumble.stop(now + duration);
+    }
+
+    function startFlameLoop() {
+      if (flameLoopNodes) return;
+
+      const audio = getAudio();
+      const now = audio.currentTime;
+
+      const noiseBuffer = audio.createBuffer(
+        1,
+        audio.sampleRate * 2,
+        audio.sampleRate
+      );
+
+      const data = noiseBuffer.getChannelData(0);
+
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.7;
+      }
+
+      const noise = audio.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+
+      const filter = audio.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 320;
+      filter.Q.value = 0.7;
+
+      const rumble = audio.createOscillator();
+      rumble.type = "sawtooth";
+      rumble.frequency.value = 72;
+
+      const rumbleGain = audio.createGain();
+      rumbleGain.gain.value = 0.025;
+
+      const gain = audio.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.11, now + 0.18);
+
+      noise.connect(filter);
+      filter.connect(gain);
+
+      rumble.connect(rumbleGain);
+      rumbleGain.connect(gain);
+
+      gain.connect(audio.destination);
+
+      noise.start(now);
+      rumble.start(now);
+
+      flameLoopNodes = {
+        noise,
+        rumble,
+        gain
+      };
+    }
+
+    function stopFlameLoop() {
+      if (!flameLoopNodes) return;
+
+      const audio = getAudio();
+      const now = audio.currentTime;
+
+      flameLoopNodes.gain.gain.cancelScheduledValues(now);
+      flameLoopNodes.gain.gain.setValueAtTime(
+        flameLoopNodes.gain.gain.value,
+        now
+      );
+      flameLoopNodes.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      const nodes = flameLoopNodes;
+
+      setTimeout(() => {
+        try {
+          nodes.noise.stop();
+          nodes.rumble.stop();
+        } catch {}
+      }, 220);
+
+      flameLoopNodes = null;
     }
 
     function playWaterSound() {
@@ -1847,6 +1958,7 @@
       state.vacuums = [];
       state.thunderChain = null;
       state.lightningEffects = [];
+      state.blackholes = [];
       startStage(0);
     }
 
@@ -1867,6 +1979,7 @@
       state.powerups.length = 0;
       state.thunderChain = null;
       state.lightningEffects.length = 0;
+      state.blackholes.length = 0;
       spawnEnemy("minion");
       showToast(`Stage ${index + 1}: ${stageNames[index]}`);
     }
@@ -2071,6 +2184,24 @@
       return enemy;
     }
 
+    function spawnBlackholeShot() {
+
+      state.blackholes.push({
+        x: state.player.x,
+        y: state.player.y,
+
+        vx: Math.cos(state.laserAngle) * 220,
+        vy: -Math.sin(state.laserAngle) * 220,
+
+        phase: "shot",
+        timer: 0,
+
+        radius: 18,
+        targets: []
+      });
+
+    }
+
     function fireBulletTo(target, powerScale = 1) {
       const origin = { x: state.player.x, y: state.player.y };
       const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
@@ -2213,17 +2344,21 @@
 
     function pickPowerupKind() {
       const roll = Math.random();
-      if (roll < 0.10) return "shield";
-      if (roll < 0.20) return "pierce";
-      if (roll < 0.30) return "explosive";
-      if (roll < 0.40) return "omni";
-      if (roll < 0.50) return "freeze";
-      if (roll < 0.60) return "bounce";
-      if (roll < 0.68) return "vacuum";
-      if (roll < 0.76) return "thunder";
-      if (roll < 0.84) return "flame";
-      if (roll < 0.92) return "water";
-      return "laser";
+
+      if (roll < 0.09) return "shield";
+      if (roll < 0.18) return "pierce";
+      if (roll < 0.27) return "explosive";
+      if (roll < 0.36) return "omni";
+      if (roll < 0.45) return "freeze";
+      if (roll < 0.54) return "bounce";
+
+      if (roll < 0.62) return "vacuum";
+      if (roll < 0.70) return "thunder";
+      if (roll < 0.78) return "flame";
+      if (roll < 0.86) return "water";
+      if (roll < 0.94) return "laser";
+
+      return "blackhole";
     }
 
     function powerupLabel(kind) {
@@ -2239,6 +2374,7 @@
       if (kind === "thunder") return "雷撃";
       if (kind === "flame") return "火炎放射";
       if (kind === "water") return "水鉄砲";
+      if (kind === "blackhole") return "ブラックホール";
       return "強化";
     }
 
@@ -2255,6 +2391,7 @@
       if (kind === "thunder") return "#fff176";
       if (kind === "flame") return "#ff6a00";
       if (kind === "water") return "#47b7c8";
+      if (kind === "blackhole") return "#d6cdfa";
       return "#ffcf5f";
     }
 
@@ -2276,6 +2413,15 @@
     }
 
     function activatePowerup(powerup) {
+      if (
+        isUltimatePowerup(powerup.kind) &&
+        isUltimatePowerupActive()
+      ) {
+        addFloater(powerup.x, powerup.y, "発動中", "#b8c3b0");
+        showToast("強力アイテム発動中: ほかの強力アイテムは発動できない");
+        powerup.life = 0;
+        return;
+      }
       playSound("powerup");
       addFloater(state.player.x, state.player.y - 96, `アイテムゲット! ${powerupLabel(powerup.kind)}`, "#ffcf5f");
       if (powerup.kind === "shield") {
@@ -2337,6 +2483,8 @@
         state.flameTickTimer = 0;
         state.invincibleTimer = Math.max(state.invincibleTimer, 10);
 
+        startFlameLoop();
+
         addFloater(
           powerup.x,
           powerup.y,
@@ -2353,6 +2501,10 @@
 
         addFloater(powerup.x, powerup.y, "水鉄砲", "#47b7c8");
         showToast("水鉄砲起動: 10秒間水で押し流す");
+      } else if (powerup.kind === "blackhole") {
+        spawnBlackholeShot();
+        addFloater(powerup.x, powerup.y, "重力核", "#d6cdfa");
+        showToast("重力核発動: 敵を集めて爆破");
       } else if (powerup.kind === "heal") {
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
@@ -2363,6 +2515,26 @@
       }
       powerup.life = 0;
     }
+
+          const ultimatePowerupKinds = new Set([
+        "laser",
+        "flame",
+        "water",
+        "blackhole"
+      ]);
+
+      function isUltimatePowerup(kind) {
+        return ultimatePowerupKinds.has(kind);
+      }
+
+      function isUltimatePowerupActive() {
+        return (
+          state.laserTimer > 0 ||
+          state.flameTimer > 0 ||
+          state.waterTimer > 0 ||
+          state.blackholes.length > 0
+        );
+      }
 
     function startThunderChain(x, y) {
       const range = state.player.radius * 12;
@@ -2523,7 +2695,7 @@
 
         if (distance > range + enemy.radius) continue;
 
-        const angle = normalizeAngle(Math.atan2(dy, dx));
+        const angle = normalizeAngle(Math.atan2(-dy, dx));
         let diff = Math.abs(angle - baseAngle);
         diff = Math.min(diff, Math.PI * 2 - diff);
 
@@ -2561,7 +2733,7 @@
 
         if (distance > range + enemy.radius) continue;
 
-        const angle = normalizeAngle(Math.atan2(dy, dx));
+        const angle = normalizeAngle(Math.atan2(-dy, dx));
         let diff = Math.abs(angle - baseAngle);
         diff = Math.min(diff, Math.PI * 2 - diff);
 
@@ -2569,7 +2741,7 @@
 
         const push = 18;
         enemy.x += Math.cos(baseAngle) * push;
-        enemy.y += Math.sin(baseAngle) * push;
+        enemy.y -= Math.sin(baseAngle) * push;
 
         const killed = hitEnemy(enemy, playerAttackDamage() * 0.16, {
           reassign: false,
@@ -2645,6 +2817,7 @@
       let next = null;
       let best = Infinity;
       for (const enemy of state.enemies) {
+        if (enemy.type === "boss") continue;
         if (enemy === fromEnemy || bullet.hitIds.includes(enemy.id) || enemy.hp <= 0) continue;
         const distance = dist(fromEnemy, enemy);
         if (distance < best) {
@@ -2708,17 +2881,7 @@
 
     function updateLaser(dt) {
       if (state.laserTimer <= 0) return;
-      const angle = normalizeAngle(state.laserAngle);
-      let keyX = 0;
-      let keyY = 0;
-      if (state.keys.has("ArrowRight")) keyX += 1;
-      if (state.keys.has("ArrowLeft")) keyX -= 1;
-      if (state.keys.has("ArrowUp")) keyY += 1;
-      if (state.keys.has("ArrowDown")) keyY -= 1;
-      const tangentX = -Math.sin(angle);
-      const tangentY = Math.cos(angle);
-      const rotation = clamp(keyX * tangentX + keyY * tangentY, -1, 1);
-      if (rotation) state.laserAngle = normalizeAngle(state.laserAngle + rotation * 3.4 * dt);
+      
       state.laserTickTimer -= dt;
       if (state.laserTickTimer > 0) return;
       state.laserTickTimer = 0.11;
@@ -2737,16 +2900,94 @@
     }
 
     function updateLaserDirection(dt, keyX, keyY) {
-      if (!keyX && !keyY) return;
+      if (
+        state.laserTimer <= 0 &&
+        state.flameTimer <= 0 &&
+        state.waterTimer <= 0
+      ) return;
 
-      const angle = normalizeAngle(state.laserAngle);
-      const tangentX = -Math.sin(angle);
-      const tangentY = Math.cos(angle);
-      const rotation = clamp(keyX * tangentX + keyY * tangentY, -1, 1);
+      let rotation = 0;
 
-      if (rotation) {
-        state.laserAngle = normalizeAngle(state.laserAngle + rotation * 3.4 * dt);
+      if (keyX < 0) rotation += 1;
+      if (keyX > 0) rotation -= 1;
+
+      if (rotation !== 0) {
+        state.laserAngle = normalizeAngle(
+          state.laserAngle + rotation * 3.5 * dt
+        );
       }
+    }
+
+    function updateBlackholes(dt) {
+
+      for (const bh of state.blackholes) {
+
+        bh.timer += dt;
+
+        if (bh.phase === "shot") {
+
+          bh.x += bh.vx * dt;
+          bh.y += bh.vy * dt;
+
+          if (bh.timer > 1.2) {
+
+            bh.phase = "pull";
+            bh.timer = 0;
+
+            bh.targets = state.enemies.filter((enemy) => enemy.type !== "boss");
+
+            for (const enemy of bh.targets) {
+              enemy.gravityPulled = true;
+            }
+          }
+        }
+
+        if (bh.phase === "pull") {
+          bh.targets = bh.targets.filter((enemy) => state.enemies.includes(enemy) && enemy.hp > 0);
+
+          for (const enemy of bh.targets) {
+            const dx = bh.x - enemy.x;
+            const dy = bh.y - enemy.y;
+            const d = Math.max(Math.hypot(dx, dy), 1);
+
+            enemy.x += dx / d * 1300 * dt;
+            enemy.y += dy / d * 1300 * dt;
+          }
+
+          if (bh.timer > 1.4) {
+            bh.phase = "charge";
+            bh.timer = 0;
+          }
+        }
+
+        if (bh.phase === "charge") {
+
+          state.shake = Math.max(
+            state.shake,
+            9
+          );
+
+          if (bh.timer > 0.7) {
+
+            for (const enemy of bh.targets) {
+              if (!state.enemies.includes(enemy)) continue;
+
+              hitEnemy(enemy, 999999, {
+                  reassign: false,
+                  quiet: true
+                }
+              );
+
+            }
+
+            playSound("explode");
+
+            state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
+            bh.phase = "dead";
+          }
+        }
+      }
+      state.blackholes = state.blackholes.filter((bh) => bh.phase !== "dead");
     }
 
     function startBossPrep() {
@@ -3025,12 +3266,8 @@
       if (state.laserTimer > 0) updateLaser(dt);
       if (state.flameTimer > 0) {
         updateFlame(dt);
-
-        state.flameSoundTimer -= dt;
-        if (state.flameSoundTimer <= 0) {
-          playFlameSound();
-          state.flameSoundTimer = 0.12;
-        }
+      } else {
+        stopFlameLoop();
       }
       if (state.waterTimer > 0) {
         updateWater(dt);
@@ -3042,6 +3279,7 @@
           state.waterSoundTimer = 0.04;
         }
       }
+      updateBlackholes(dt);
       if (state.phase === "waves") {
         state.spawnTimer -= dt;
         const spawnEvery = Math.max(0.16, (1.05 - state.stage * 0.065 - state.phaseKills * 0.007) / difficultyRate());
@@ -3121,15 +3359,24 @@
             enemy.y = clamp(enemy.y, 80, state.h - enemy.radius);
           }
         }
-        if (dist(enemy, state.player) < enemy.radius + state.player.radius && enemy.type !== "boss") {
+        if (!enemy.gravityPulled &&
+            dist(enemy, state.player) < enemy.radius + state.player.radius &&
+            enemy.type !== "boss") {
           applyPlayerDamage(enemy.attack, state.player.x, state.player.y - 45);
           enemy.hp = 0;
           state.combo = 0;
           state.shake = Math.max(state.shake, 13);
-        } else if (dist(enemy, state.player) < enemy.radius + state.player.radius && enemy.type === "boss" && state.bossIntroTimer <= 0) {
-          if (state.time % 0.5 < dt) applyPlayerDamage(enemy.attack * 0.5, state.player.x, state.player.y - 45);
-          state.shake = Math.max(state.shake, 8);
-        }
+        } else if (
+            !enemy.gravityPulled &&
+            dist(enemy, state.player) < enemy.radius + state.player.radius &&
+            enemy.type === "boss" &&
+            state.bossIntroTimer <= 0
+          ) {
+            if (state.time % 0.5 < dt) {
+              applyPlayerDamage(enemy.attack * 0.5, state.player.x, state.player.y - 45);
+            }
+            state.shake = Math.max(state.shake, 8);
+          }
         if (!frozen && enemy.type === "boss" && state.bossIntroTimer <= 0) {
           enemy.bossShotTimer -= dt;
           if (enemy.bossShotTimer <= 0) {
@@ -3552,7 +3799,7 @@
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.translate(state.player.x, state.player.y);
-      ctx.rotate(angle);
+      ctx.rotate(-angle);
 
       for (let i = 0; i < 18; i++) {
         const t = i / 17;
@@ -3592,7 +3839,7 @@
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.translate(state.player.x, state.player.y);
-      ctx.rotate(angle);
+      ctx.rotate(-angle);
 
       for (let i = 0; i < 18; i++) {
         const t = i/17;
@@ -3646,7 +3893,6 @@
             offset * (1 - t * 0.3) + Math.sin(state.time * 20 + x * 0.08 + i) * 16
           );
         }
-        ctx.restore();
       }
 
       ctx.restore();
@@ -3684,6 +3930,33 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("吸", 0, 3);
+        ctx.restore();
+      }
+    }
+
+    function drawBlackholes() {
+      for (const bh of state.blackholes) {
+        ctx.save();
+        ctx.translate(bh.x, bh.y);
+
+        const pulse = 1 + Math.sin(state.time * 18) * 0.12;
+
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = "rgba(20, 8, 35, 0.88)";
+        ctx.strokeStyle = "#d6cdfa";
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, bh.radius * pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(214,205,250,0.45)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, bh.radius * 2.1 * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
         ctx.restore();
       }
     }
@@ -3891,8 +4164,59 @@
           );
     
           ctx.stroke();
-  }
-}
+        }
+      } else if (kind === "blackhole") {
+        ctx.save();
+
+        ctx.globalCompositeOperation = "lighter";
+
+        // 外側のぼんやりした渦
+        for (let i = 0; i < 9; i++) {
+          const angle = state.time * 2.8 + i * 0.7;
+          const radius = r * (0.35 + i * 0.075);
+
+          ctx.save();
+          ctx.rotate(angle);
+
+          ctx.strokeStyle = `rgba(214, 205, 250, ${0.16 - i * 0.011})`;
+          ctx.lineWidth = Math.max(1.2, r * 0.16 - i * 0.8);
+          ctx.lineCap = "round";
+
+          ctx.beginPath();
+          ctx.ellipse(
+            0,
+            0,
+            radius * 1.25,
+            radius * 0.62,
+            i * 0.35,
+            0,
+            Math.PI * 1.45
+          );
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        // 中央の黒い核
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = "#050208";
+        ctx.shadowColor = "#ba68c8";
+        ctx.shadowBlur = r * 0.8;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 紫の薄い輪郭
+        ctx.strokeStyle = "rgba(225, 190, 231, 0.75)";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.52, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+      }
     }
 
     function drawPowerups() {
@@ -4221,6 +4545,7 @@
       }
       ctx.globalAlpha = 1;
       drawVacuums();
+      drawBlackholes();
       drawBase();
       drawFlame();
       drawWater();
