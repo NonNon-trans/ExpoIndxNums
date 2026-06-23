@@ -2615,6 +2615,14 @@
         powerup.x += (dx / distance) * step;
         powerup.y += (dy / distance) * step;
         if (distance <= powerup.radius + state.player.radius) {
+
+          if (
+            isUltimatePowerup(powerup.kind) &&
+            isUltimatePowerupActive()
+          ) {
+            continue;
+          }
+
           activatePowerup(powerup);
           powerup.life = 0;
         }
