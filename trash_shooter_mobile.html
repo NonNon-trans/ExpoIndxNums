@@ -434,6 +434,8 @@
       spawnTimer: 0, bossTimer: 0, damageSoundTimer: 0, time: 0, last: 0, drag: null, move: { x: 0, y: 0 }, enemies: [], bullets: [], particles: [], floaters: [],
       laserAngle: -Math.PI / 2, levelUpQueue: 0, killsSinceLevel: 0, typoStreak: 0, rescueCooldown: 0, rescue: null,
       radarRange: 420, shield: 0, pierce: 0, explosive: 0, omni: 0, freeze: 0, laser: 0, bounce: 0, vacuum: null,
+      typingStartedAt: 0,
+      typingStats: { entries: 0, chars: 0, seconds: 0, bestCharsPerSecond: 0 },
     };
 
     let audioCtx = null;
@@ -708,6 +710,8 @@
       state.typoStreak = 0;
       state.rescueCooldown = 0;
       state.rescue = null;
+      state.typingStartedAt = 0;
+      state.typingStats = { entries: 0, chars: 0, seconds: 0, bestCharsPerSecond: 0 };
       rescuePanel.classList.add("hidden");
       inputBox.style.zIndex = "";
       stopRescueBgm();
@@ -1037,7 +1041,23 @@
 
     function clearTypedInput() {
       state.input = "";
+      state.typingStartedAt = 0;
       inputBox.value = "";
+    }
+
+    function recordTypingSpeed(text) {
+      const chars = normalize(text).length;
+      if (!chars || !state.typingStartedAt) return;
+
+      const seconds = Math.max(0.05, (performance.now() - state.typingStartedAt) / 1000);
+      const cps = chars / seconds;
+
+      state.typingStats.entries += 1;
+      state.typingStats.chars += chars;
+      state.typingStats.seconds += seconds;
+      state.typingStats.bestCharsPerSecond = Math.max(state.typingStats.bestCharsPerSecond, cps);
+
+      floater(state.player.x, state.player.y - 92, `${cps.toFixed(1)}字/秒`, "#47b7c8");
     }
 
     function processTypedInput() {
@@ -1048,6 +1068,7 @@
       if (!state.running) return;
       const enemy = nearestMatchingEnemy();
       if (enemy) {
+        recordTypingSpeed(state.input);
         clearTypedInput();
         state.combo += 1;
         state.typoStreak = 0;
@@ -1329,7 +1350,12 @@
       comboLabel.textContent = state.combo;
       enemyLabel.textContent = state.enemies.length;
       hpFill.style.width = `${clamp(state.player.hp / state.player.maxHp, 0, 1) * 100}%`;
-      expLabel.textContent = `${Math.floor((state.player.exp / state.player.nextExp) * 100)}%`;
+      const avgCharsPerSecond = state.typingStats.seconds > 0
+        ? state.typingStats.chars / state.typingStats.seconds
+        : 0;
+      expLabel.textContent = avgCharsPerSecond > 0
+        ? `${avgCharsPerSecond.toFixed(1)}字/s`
+        : `${Math.floor((state.player.exp / state.player.nextExp) * 100)}%`;
       const active = ["shield", "pierce", "explosive", "omni", "freeze", "laser", "bounce"].find((key) => state[key] > 0);
       powerLabel.textContent = active ? `${itemName(active)} ${Math.ceil(state[active])}` : state.vacuum ? `掃除機 ${Math.ceil(state.vacuum.life)}` : "なし";
       inputBox.placeholder = state.input ? `入力中: ${state.input}` : "ここをタップして入力";
@@ -1612,7 +1638,17 @@
         state.input = inputBox.value;
         return;
       }
+
       state.input = inputBox.value;
+
+      if (
+        state.input &&
+        !state.typingStartedAt &&
+        !state.rescue
+      ) {
+        state.typingStartedAt = performance.now();
+      }
+
       processTypedInput();
     });
     inputBox.addEventListener("keydown", (event) => {
@@ -1624,6 +1660,7 @@
         }
         const enemy = nearestMatchingEnemy();
         if (enemy) {
+          recordTypingSpeed(state.input);
           clearTypedInput();
           state.combo += 1;
           state.typoStreak = 0;
