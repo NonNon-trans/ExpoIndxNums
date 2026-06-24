@@ -1631,11 +1631,29 @@
     inputBox.addEventListener("compositionend", () => {
       composing = false;
       state.input = inputBox.value;
+
+      if (
+        state.input &&
+        !state.typingStartedAt &&
+        !state.rescue
+      ) {
+        state.typingStartedAt = performance.now();
+      }
+
       processTypedInput();
     });
     inputBox.addEventListener("input", () => {
       if (composing) {
         state.input = inputBox.value;
+
+        if (
+          state.input &&
+          !state.typingStartedAt &&
+          !state.rescue
+        ) {
+          state.typingStartedAt = performance.now();
+        }
+
         return;
       }
 
