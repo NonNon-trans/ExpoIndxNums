@@ -460,8 +460,8 @@
         <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
       </label>
       <div class="controls">
-        <button id="startBtn">ゲーム開始</button>
-        <button class="secondary" id="practiceBtn">ステージ1から練習</button>
+        <button id="startBtn" style="display: none;">ゲーム開始</button>
+        <button class="secondary" id="practiceBtn" style="display: none;">ステージ1から練習</button>
         <button class="secondary difficulty-btn" id="easyBtn">イージーモード</button>
         <button class="difficulty-btn" id="normalBtn">ノーマルモード</button>
         <button class="secondary difficulty-btn" id="hardBtn">ハードモード</button>
@@ -645,6 +645,7 @@
       thunderChain: null,
       lightningEffects: [],
       blackholes: [],
+      homingMissiles: [],
     };
 
    const trashKinds = [
@@ -1959,6 +1960,7 @@
       state.thunderChain = null;
       state.lightningEffects = [];
       state.blackholes = [];
+      state.homingMissiles = [];
       startStage(0);
     }
 
@@ -1980,6 +1982,7 @@
       state.thunderChain = null;
       state.lightningEffects.length = 0;
       state.blackholes.length = 0;
+      state.homingMissiles.length = 0;
       spawnEnemy("minion");
       showToast(`Stage ${index + 1}: ${stageNames[index]}`);
     }
@@ -2202,6 +2205,28 @@
 
     }
 
+        function spawnHomingMissiles() {
+          const targets = [...state.enemies]
+            .filter((enemy) =>  enemy.hp > 0)
+            .sort((a, b) => dist(a, state.player) - dist(b, state.player))
+            .slice(0, 8);
+
+          for (const target of targets) {
+            state.homingMissiles.push({
+              x: state.player.x,
+              y: state.player.y,
+              vx: 0,
+              vy: -260,
+              radius: 7,
+              speed: 520,
+              turnRate: 7.5,
+              life: 3.4,
+              targetId: target.id,
+              damage: playerAttackDamage() * 3.2
+            });
+          }
+        }
+
     function fireBulletTo(target, powerScale = 1) {
       const origin = { x: state.player.x, y: state.player.y };
       const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
@@ -2345,18 +2370,19 @@
     function pickPowerupKind() {
       const roll = Math.random();
 
-      if (roll < 0.09) return "shield";
-      if (roll < 0.18) return "pierce";
-      if (roll < 0.27) return "explosive";
-      if (roll < 0.36) return "omni";
-      if (roll < 0.45) return "freeze";
-      if (roll < 0.54) return "bounce";
+      if (roll < 0.085) return "shield";
+      if (roll < 0.170) return "pierce";
+      if (roll < 0.255) return "explosive";
+      if (roll < 0.340) return "omni";
+      if (roll < 0.425) return "freeze";
+      if (roll < 0.510) return "bounce";
 
-      if (roll < 0.62) return "vacuum";
-      if (roll < 0.70) return "thunder";
-      if (roll < 0.78) return "flame";
-      if (roll < 0.86) return "water";
-      if (roll < 0.94) return "laser";
+      if (roll < 0.585) return "vacuum";
+      if (roll < 0.660) return "thunder";
+      if (roll < 0.735) return "flame";
+      if (roll < 0.810) return "water";
+      if (roll < 0.885) return "laser";
+      if (roll < 0.955) return "missile";
 
       return "blackhole";
     }
@@ -2505,6 +2531,10 @@
         spawnBlackholeShot();
         addFloater(powerup.x, powerup.y, "重力核", "#d6cdfa");
         showToast("重力核発動: 敵を集めて爆破");
+      } else if (powerup.kind === "missile") {
+        spawnHomingMissiles();
+        addFloater(powerup.x, powerup.y, "追尾ミサイル", "#ff8a65");
+        showToast("追尾ミサイル: 近い敵を自動追跡");
       } else if (powerup.kind === "heal") {
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
@@ -2763,6 +2793,36 @@
           state.enemies = state.enemies.filter((target) => target !== enemy);
         }
       }
+    }
+
+    function updateHomingMissiles(dt) {
+      for (const missile of state.homingMissiles) {
+        missile.life -= dt;
+
+        const target = state.enemies.find(
+          (enemy) => enemy.id === missile.targetId && enemy.hp > 0 
+        );
+
+        if (target) {
+          const angle = Math.atan2(target.y - missile.y, target.x - missile.x);
+          missile.vx = Math.cos(angle) * missile.speed;
+          missile.vy = Math.sin(angle) * missile.speed;
+        }
+
+        missile.x += missile.vx * dt;
+        missile.y += missile.vy * dt;
+
+        for (const enemy of [...state.enemies]) {
+          if (dist(missile, enemy) > missile.radius + enemy.radius) continue;
+
+          hitEnemy(enemy, missile.damage, { reassign: false, quiet: true });
+          playSound("explode");
+          missile.life = 0;
+          break;
+        }
+      }
+
+      state.homingMissiles = state.homingMissiles.filter((m) => m.life > 0);
     }
 
     function shouldAdvanceForKill(enemy) {
@@ -3410,6 +3470,7 @@
       updatePowerups(dt);
       updateThunderChain(dt);
       updateLightningEffects(dt);
+      updateHomingMissiles(dt);
 
       for (const bullet of state.bullets) {
         const lockedEnemy = state.enemies.find((enemy) => enemy.id === bullet.targetId);
@@ -3969,6 +4030,43 @@
       }
     }
 
+    function drawHomingMissiles() {
+      if (!state.homingMissiles) return;
+      
+      for (const missile of state.homingMissiles) {
+        const angle = Math.atan2(missile.vy, missile.vx);
+
+        ctx.save();
+        ctx.translate(missile.x, missile.y);
+        ctx.rotate(angle);
+
+        ctx.fillStyle = "#ff8a65";
+        ctx.strokeStyle = "#fff3e0";
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#ffcc80";
+        ctx.shadowBlur = 12;
+
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-8, -6);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(-8, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffd180";
+        ctx.beginPath();
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(-19, 0);
+        ctx.lineTo(-8, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
     function drawLightningEffects() {
       for (const fx of state.lightningEffects) {
         const alpha = clamp(fx.life / fx.maxLife, 0, 1);
@@ -4223,6 +4321,42 @@
         ctx.arc(0, 0, r * 0.52, 0, Math.PI * 2);
         ctx.stroke();
 
+        ctx.restore();
+      } else if (kind === "missile") {
+        ctx.save();
+
+        // 機体
+        ctx.fillStyle = "#ff8a65";
+        ctx.strokeStyle = "#fff3e0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(r * 0.75, 0);
+        ctx.lineTo(r * 0.10, -r * 0.28);
+        ctx.lineTo(-r * 0.28, -r * 0.28);
+        ctx.lineTo(-r * 0.55, -r * 0.50);
+        ctx.lineTo(-r * 0.42, 0);
+        ctx.lineTo(-r * 0.55, r * 0.50);
+        ctx.lineTo(-r * 0.28, r * 0.28);
+        ctx.lineTo(r * 0.10, r * 0.28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 先端
+        ctx.fillStyle = "#fff3e0";
+        ctx.beginPath();
+        ctx.arc(r * 0.55, 0, r * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 炎
+        ctx.fillStyle = "#ffd54f";
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.60, 0);
+        ctx.lineTo(-r * 0.95, -r * 0.18);
+        ctx.lineTo(-r * 0.80, 0);
+        ctx.lineTo(-r * 0.95, r * 0.18);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
       }
     }
@@ -4554,6 +4688,7 @@
       ctx.globalAlpha = 1;
       drawVacuums();
       drawBlackholes();
+      drawHomingMissiles();
       drawBase();
       drawFlame();
       drawWater();
