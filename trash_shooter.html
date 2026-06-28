@@ -690,9 +690,9 @@
       { display: "あをによし", answers: ["awoniyoshi", "awoniyosi", "あをによし"] },
       { display: "book", answers: ["book"] },
       { display: "サテライトオフィス", answers: ["sateraitoofisu", "satelliteoffice", "さてらいとおふぃす"] },
-      { display: "任天堂", answers: ["nintendou", "nintendo", "にんてんどう"] },
+      { display: "任天堂", answers: ["nintendou", "にんてんどう"] },
       { display: "switch", answers: ["switch"] },
-      { display: "角砂糖", answers: ["kakuzatou", "kakuzato", "かくざとう"] },
+      { display: "角砂糖", answers: ["kakuzatou", "かくざとう"] },
       { display: "六甲おろし", answers: ["rokkouoroshi", "rokkooroshi", "rokkouorosi", "ろっこうおろし"] },
       { display: "大根おろし", answers: ["daikonoroshi", "daikonorosi", "だいこんおろし"] },
       { display: "渡る世間は鬼ばかり", answers: ["watarusekenhaonibakari", "watarusekenwaonibakari", "わたるせけんはおにばかり"] },
@@ -753,18 +753,18 @@
       { display: "garbage", answers: ["garbage"] },
       { display: "definition", answers: ["definition"] },
       { display: "マイケルジャクソン", answers: ["maikerujakuson", "maikerujakson", "まいけるじゃくそん"] },
-      { display: "学校", reading: "がっこう", answers: ["gakkou", "gakko", "がっこう"] },
+      { display: "学校", reading: "がっこう", answers: ["gakkou", "がっこう"] },
       { display: "大変", reading: "たいへん", answers: ["taihen", "たいへん"] },
       { display: "忙しい", reading: "いそがしい", answers: ["isogashii", "isogasii", "いそがしい"] },
       { display: "大晦日", reading: "おおみそか", answers: ["oomisoka", "ooomisoka", "おおみそか"] },
       { display: "お花畑", reading: "おはなばたけ", answers: ["ohanabatake", "おはなばたけ"] },
       { display: "ライス", answers: ["raisu", "rice", "らいす"] },
-      { display: "納豆", reading: "なっとう", answers: ["nattou", "natto", "なっとう"] },
+      { display: "納豆", reading: "なっとう", answers: ["nattou", "なっとう"] },
       { display: "ゴジラ", answers: ["gojira", "gozira", "ごじら"] },
       { display: "カツ丼", reading: "かつどん", answers: ["katsudon", "katudon", "かつどん"] },
       { display: "黒胡麻担々つけ麺", reading: "くろごまたんたんつけめん", answers: ["kurogomatantantsukemen", "kurogomatantantukemen", "くろごまたんたんつけめん"] },
       { display: "鬼滅の刃", reading: "きめつのやいば", answers: ["kimetsunoyaiba", "kimetunoyaiba", "きめつのやいば"] },
-      { display: "炭治郎", reading: "たんじろう", answers: ["tanjirou", "tanjiro", "tanziro", "たんじろう"] },
+      { display: "炭治郎", reading: "たんじろう", answers: ["tanjirou", "tanzirou", "たんじろう"] },
       { display: "ゼンイツ", answers: ["zenitsu", "zenitu", "ぜんいつ"] },
       { display: "お前も鬼にならないか", reading: "おまえもおににならないか", answers: ["omaemoonininaranaika", "おまえもおににならないか"] },
       { display: "かめ", answers: ["kame", "かめ"] },
@@ -774,7 +774,7 @@
       { display: "食器", reading: "しょっき", answers: ["shokki", "syokki", "しょっき"] },
       { display: "ピンセット", answers: ["pinsetto", "ぴんせっと"] },
       { display: "スライドガラス", answers: ["suraidogurasu", "suraidogarasu", "suraidoglass", "slideglass", "すらいどがらす"] },
-      { display: "顕微鏡", reading: "けんびきょう", answers: ["kenbikyou", "kenbikyo", "けんびきょう"] },
+      { display: "顕微鏡", reading: "けんびきょう", answers: ["kenbikyou", "けんびきょう"] },
       { display: "電子レンジ", reading: "でんしれんじ", answers: ["denshirenji", "densirenzi", "でんしれんじ"] },
       { display: "たこ焼き", reading: "たこやき", answers: ["takoyaki", "たこやき"] },
       { display: "おかし", answers: ["okashi", "okasi", "おかし"] },
@@ -854,7 +854,7 @@
       { display: "ドリア", answers: ["doria", "どりあ"] },
       { display: "ブルタスお前もか", reading: "ぶるたすおまえもか", answers: ["burutasuomaemoka", "ぶるたすおまえもか"] },
       { display: "明日があるさ", reading: "あしたがあるさ", answers: ["ashitagaarusa", "asitagaarusa", "あしたがあるさ"] },
-      { display: "七転八倒", reading: "しちてんばっとう", answers: ["shichitenbattou", "sititenbatto", "しちてんばっとう"] },
+      { display: "七転八倒", reading: "しちてんばっとう", answers: ["shichitenbattou", "しちてんばっとう"] },
       { display: "才色兼備", reading: "さいしょくけんび", answers: ["saishokukenbi", "saisyokukenbi", "さいしょくけんび"] },
       { display: "十人十色", reading: "じゅうにんといろ", answers: ["juunintoiro", "zyuunintoiro", "じゅうにんといろ"] },
       { display: "竜頭蛇尾", reading: "りゅうとうだび", answers: ["ryuutoudabi", "ryutodabi", "りゅうとうだび"] },
@@ -3047,7 +3047,7 @@
               );
 
             }
-
+            state.shake = 30;
             playSound("explode");
 
             state.enemies = state.enemies.filter((enemy) => enemy.hp > 0);
