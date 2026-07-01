@@ -646,6 +646,11 @@
       lightningEffects: [],
       blackholes: [],
       homingMissiles: [],
+      machinegunTimer: 0,
+      machinegunQueue: [],
+      machinegunFireTimer: 0,
+      machinegunAudio: null,
+      machinegunEndingAudios: [],
     };
 
    const trashKinds = [
@@ -852,7 +857,6 @@
       { display: "ピザ", answers: ["piza", "pizza", "ぴざ"] },
       { display: "サラダ", answers: ["sarada", "salad", "さらだ"] },
       { display: "ドリア", answers: ["doria", "どりあ"] },
-      { display: "ブルタスお前もか", reading: "ぶるたすおまえもか", answers: ["burutasuomaemoka", "ぶるたすおまえもか"] },
       { display: "明日があるさ", reading: "あしたがあるさ", answers: ["ashitagaarusa", "asitagaarusa", "あしたがあるさ"] },
       { display: "七転八倒", reading: "しちてんばっとう", answers: ["shichitenbattou", "しちてんばっとう"] },
       { display: "才色兼備", reading: "さいしょくけんび", answers: ["saishokukenbi", "saisyokukenbi", "さいしょくけんび"] },
@@ -934,6 +938,13 @@
     }
 
     const typeMissClips = ["mistype_funny_1.mp3"];
+    const missileClips = ["missile_launching_1.mp3"];
+    const missileExplosionClips = ["missile_explosion.mp3"];
+    const machinegunClips = ["machinegun_fire.mp3"];
+    const MACHINEGUN_MIN_ENEMY_COUNT = 10;
+    const MACHINEGUN_SHOT_COUNT = 24;
+    const MACHINEGUN_AUDIO_DURATION = 2.142042;
+    const MACHINEGUN_FIRE_INTERVAL = MACHINEGUN_AUDIO_DURATION / Math.max(1, MACHINEGUN_SHOT_COUNT - 1);
 
     function playFallbackTypeMiss() {
       beep(392, 0.12, "sine", 0.06);
@@ -957,6 +968,52 @@
       } catch {
         return false;
       }
+    }
+
+    function playFallbackMissileSound() {
+      beep(95, 0.18, "sawtooth", 0.075);
+      beep(330, 0.22, "triangle", 0.048, 0.03);
+      beep(720, 0.28, "sawtooth", 0.035, 0.055);
+      beep(1200, 0.22, "sine", 0.024, 0.1);
+    }
+
+    function playAudioClip(clips, volume = 0.82, playbackRate = 1, fallback = null, loop = false) {
+      try {
+        const clip = clips[Math.floor(Math.random() * clips.length)];
+        const audio = new Audio(clip);
+        audio.volume = volume;
+        audio.playbackRate = playbackRate;
+        audio.loop = loop;
+        const started = audio.play();
+        if (started?.catch && fallback) started.catch(fallback);
+        return audio;
+      } catch {
+        if (fallback) fallback();
+        return null;
+      }
+    }
+
+    function playMissileSound() {
+      return playAudioClip(missileClips, 0.86, 1, playFallbackMissileSound);
+    }
+
+    function playFallbackMachinegunSound() {
+      const f = 170 + Math.random() * 25;
+      beep(f,       0.020, "square",  0.030);
+      beep(f * 1.6, 0.015, "triangle", 0.014, 0.003);
+      beep(70,      0.030, "sawtooth", 0.010);
+    }
+
+    function playMachinegunSound() {
+      return playAudioClip(machinegunClips, 0.82, 1, playFallbackMachinegunSound, true);
+    }
+
+    function stopAudioClip(audio) {
+      if (!audio || audio.paused) return;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
     }
 
     function playSoundAt(kind, pitch = 1) {
@@ -1339,6 +1396,97 @@
       gain.connect(audioCtx.destination);
 
       source.start();
+    }
+
+    function createMissileLoopSound() {
+      const audio = getAudio();
+      const now = audio.currentTime;
+
+      const osc = audio.createOscillator();
+      const oscGain = audio.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1150 + Math.random() * 90, now);
+      osc.frequency.exponentialRampToValueAtTime(760 + Math.random() * 60, now + 0.5);
+
+      oscGain.gain.setValueAtTime(0.0001, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.026, now + 0.08);
+
+      const noiseBuffer = audio.createBuffer(
+        1,
+        audio.sampleRate * 0.7,
+        audio.sampleRate
+      );
+
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.32;
+      }
+
+      const noise = audio.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+
+      const filter = audio.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(1500 + Math.random() * 160, now);
+      filter.Q.value = 8.5;
+
+      const noiseGain = audio.createGain();
+      noiseGain.gain.setValueAtTime(0.0001, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.032, now + 0.08);
+
+      const masterGain = audio.createGain();
+      masterGain.gain.setValueAtTime(0.0001, now);
+      masterGain.gain.exponentialRampToValueAtTime(0.85, now + 0.05);
+
+      osc.connect(oscGain);
+      oscGain.connect(masterGain);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(masterGain);
+
+      masterGain.connect(audio.destination);
+
+      osc.start(now);
+      noise.start(now);
+
+      return {
+        osc,
+        noise,
+        filter,
+        oscGain,
+        noiseGain,
+        gain: masterGain
+      };
+    }
+
+    function stopMissileLoopSound(missile) {
+      if (!missile?.sound) return;
+
+      const audio = getAudio();
+      const now = audio.currentTime;
+      const { osc, noise, gain } = missile.sound;
+
+      try {
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+
+        osc.stop(now + 0.09);
+        if (noise) noise.stop(now + 0.09);
+      } catch {}
+
+      missile.sound = null;
+    }
+
+    function playMissileExplosionSound() {
+      playAudioClip(missileExplosionClips, 0.9, 1, () => {
+        beep(42, 0.42, "sawtooth", 0.12);
+        beep(74, 0.28, "square", 0.08, 0.02);
+        beep(220, 0.08, "sawtooth", 0.05, 0.06);
+      });
     }
 
     function startRescueBgm() {
@@ -1961,6 +2109,9 @@
       state.lightningEffects = [];
       state.blackholes = [];
       state.homingMissiles = [];
+      stopMachinegunSoundNow();
+      state.machinegunQueue = [];
+      state.machinegunFireTimer = 0;
       startStage(0);
     }
 
@@ -1979,6 +2130,9 @@
       state.bullets.length = 0;
       state.enemyBullets.length = 0;
       state.powerups.length = 0;
+      stopMachinegunSoundNow();
+      state.machinegunQueue.length = 0;
+      state.machinegunFireTimer = 0;
       state.thunderChain = null;
       state.lightningEffects.length = 0;
       state.blackholes.length = 0;
@@ -2102,6 +2256,9 @@
       playSound("clear");
       state.health = clamp(state.health + 18, 0, state.maxHealth);
       state.bullets.length = 0;
+      stopMachinegunSoundNow();
+      state.machinegunQueue.length = 0;
+      state.machinegunFireTimer = 0;
       state.enemyBullets.length = 0;
       state.powerups.length = 0;
       state.input = "";
@@ -2211,6 +2368,8 @@
             .sort((a, b) => dist(a, state.player) - dist(b, state.player))
             .slice(0, 8);
 
+          const flightAudio = targets.length ? playMissileSound() : null;
+
           for (const target of targets) {
             state.homingMissiles.push({
               x: state.player.x,
@@ -2222,12 +2381,14 @@
               turnRate: 7.5,
               life: 3.4,
               targetId: target.id,
-              damage: playerAttackDamage() * 3.2
+              damage: playerAttackDamage() * 3.2,
+              sound: null,
+              flightAudio,
             });
           }
         }
 
-    function fireBulletTo(target, powerScale = 1) {
+    function fireBulletTo(target, powerScale = 1, options = {}) {
       const origin = { x: state.player.x, y: state.player.y };
       const angle = Math.atan2(target.y - origin.y, target.x - origin.x);
       state.bullets.push({
@@ -2243,11 +2404,13 @@
         explosive: state.explosiveTimer > 0,
         bouncesLeft: state.bounceTimer > 0 ? 2 : 0,
         hitIds: [],
+        machinegunAudio: options.machinegunAudio || null,
+        machinegun: options.machinegun === true,
       });
       return origin;
     }
 
-    function fireBulletAtAngle(angle, powerScale = 1) {
+    function fireBulletAtAngle(angle, powerScale = 1, options = {}) {
       const origin = { x: state.player.x, y: state.player.y };
       state.bullets.push({
         x: origin.x,
@@ -2262,6 +2425,8 @@
         explosive: state.explosiveTimer > 0,
         bouncesLeft: state.bounceTimer > 0 ? 2 : 0,
         hitIds: [],
+        machinegunAudio: options.machinegunAudio || null,
+        machinegun: options.machinegun === true,
       });
     }
 
@@ -2354,8 +2519,9 @@
       spawnPowerup(x, y, pickPowerupKind());
     }
 
-    function dropBossHitPowerup(enemy) {
+    function dropBossHitPowerup(enemy, itemDropMode = "normal") {
       if (enemy.type !== "boss") return;
+      if (itemDropMode === "none") return;
       enemy.powerupHitCount += 1;
       if (enemy.powerupHitCount < enemy.nextPowerupHit) return;
       enemy.powerupHitCount = 0;
@@ -2363,28 +2529,39 @@
       spawnPowerup(
         enemy.x + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
         enemy.y + rand(-enemy.radius * 0.45, enemy.radius * 0.45),
-        pickPowerupKind(),
+        itemDropMode === "healOnly" ? "heal" : pickPowerupKind(),
       );
     }
 
+    function canSpawnMachinegunPowerup() {
+      const livingMinions = state.enemies.filter(
+        (enemy) => enemy.type !== "boss" && enemy.hp > 0
+      ).length;
+      const bossActive = state.enemies.some(
+        (enemy) => enemy.type === "boss" && enemy.hp > 0
+      );
+      return livingMinions >= MACHINEGUN_MIN_ENEMY_COUNT || bossActive;
+    }
+
     function pickPowerupKind() {
-      const roll = Math.random();
-
-      if (roll < 0.085) return "shield";
-      if (roll < 0.170) return "pierce";
-      if (roll < 0.255) return "explosive";
-      if (roll < 0.340) return "omni";
-      if (roll < 0.425) return "freeze";
-      if (roll < 0.510) return "bounce";
-
-      if (roll < 0.585) return "vacuum";
-      if (roll < 0.660) return "thunder";
-      if (roll < 0.735) return "flame";
-      if (roll < 0.810) return "water";
-      if (roll < 0.885) return "laser";
-      if (roll < 0.955) return "missile";
-
-      return "blackhole";
+      const kinds = [
+        "shield",
+        "pierce",
+        "explosive",
+        "omni",
+        "freeze",
+        "laser",
+        "bounce",
+        "vacuum",
+        "heal",
+        "thunder",
+        "flame",
+        "water",
+        "blackhole",
+        "missile",
+      ];
+      if (canSpawnMachinegunPowerup()) kinds.push("machinegun");
+      return kinds[Math.floor(rand(0, kinds.length))];
     }
 
     function powerupLabel(kind) {
@@ -2535,6 +2712,11 @@
         spawnHomingMissiles();
         addFloater(powerup.x, powerup.y, "追尾ミサイル", "#ff8a65");
         showToast("追尾ミサイル: 近い敵を自動追跡");
+      } else if (powerup.kind === "machinegun") {
+      state.machinegunTimer = 0.6;
+      startMachinegun();
+      addFloater(powerup.x, powerup.y, "マシンガン", "#ffd180");
+      showToast("マシンガン: 近い敵を連続撃破");
       } else if (powerup.kind === "heal") {
         healPlayer(0.1, powerup.x, powerup.y);
         showToast("HPを回復");
@@ -2614,6 +2796,70 @@
       );
     }
 
+    function startMachinegun() {
+      const boss = state.enemies.find((enemy) => enemy.type === "boss" && enemy.hp > 0);
+      const sortedTargets = [...state.enemies]
+        .filter((enemy) => enemy.hp > 0)
+        .sort((a, b) => dist(a, state.player) - dist(b, state.player));
+      const fallbackTarget = {
+        id: null,
+        x: state.player.x,
+        y: state.player.y - 220,
+        hp: 1
+      };
+
+      if (boss) {
+        state.machinegunQueue = Array.from(
+          { length: MACHINEGUN_SHOT_COUNT },
+          () => boss
+        );
+      } else {
+        const targets = sortedTargets.length ? sortedTargets : [fallbackTarget];
+        state.machinegunQueue = Array.from(
+          { length: MACHINEGUN_SHOT_COUNT },
+          (_, index) => targets[index % targets.length]
+        );
+      }
+      
+      state.machinegunFireTimer = 0;
+      if (state.machinegunQueue.length && !state.machinegunAudio) {
+        state.machinegunAudio = playMachinegunSound();
+      }
+      stopMachinegunSoundIfDone();
+    }
+
+    function stopMachinegunSoundNow() {
+      stopAudioClip(state.machinegunAudio);
+      state.machinegunAudio = null;
+      for (const audio of state.machinegunEndingAudios) stopAudioClip(audio);
+      state.machinegunEndingAudios.length = 0;
+    }
+
+    function finishMachinegunSoundNaturally() {
+      if (!state.machinegunAudio) return;
+      const audio = state.machinegunAudio;
+      state.machinegunAudio = null;
+      try {
+        audio.loop = false;
+        state.machinegunEndingAudios.push(audio);
+        audio.onended = () => {
+          state.machinegunEndingAudios = state.machinegunEndingAudios.filter(
+            (endingAudio) => endingAudio !== audio
+          );
+        };
+      } catch {
+        state.machinegunEndingAudios = state.machinegunEndingAudios.filter(
+          (endingAudio) => endingAudio !== audio
+        );
+      }
+    }
+
+    function stopMachinegunSoundIfDone() {
+      if (!state.machinegunAudio) return;
+      if (state.machinegunQueue.length) return;
+      finishMachinegunSoundNaturally();
+    }
+
     function addParticle(x, y, color, speed = 90, life = 0.45, size = rand(2, 6)) {
       const a = rand(0, Math.PI * 2);
       state.particles.push({
@@ -2686,7 +2932,8 @@
 
         hitEnemy(enemy, enemy.hp + 9999, {
           reassign: false,
-          quiet: true
+          quiet: true,
+          itemDropMode: "healOnly"
         });
 
         state.enemies = state.enemies.filter((target) => target.hp > 0);
@@ -2741,7 +2988,8 @@
 
         const killed = hitEnemy(enemy, playerAttackDamage() * 0.28, {
           reassign: false,
-          quiet: true
+          quiet: true,
+          itemDropMode: "healOnly"
         });
 
         addParticle(enemy.x, enemy.y, "#ff6a00", rand(80, 220), rand(0.18, 0.45), rand(3, 8));
@@ -2783,7 +3031,8 @@
 
         const killed = hitEnemy(enemy, playerAttackDamage() * 0.16, {
           reassign: false,
-          quiet: true
+          quiet: true,
+          itemDropMode: "healOnly"
         });
 
         addParticle(enemy.x, enemy.y, "#47b7c8", rand(90, 260), rand(0.18, 0.42), rand(2, 6));
@@ -2812,17 +3061,99 @@
         missile.x += missile.vx * dt;
         missile.y += missile.vy * dt;
 
+        if (missile.sound) {
+          const speed = Math.hypot(missile.vx, missile.vy);
+          const whistle = 760 + speed * 0.42 + Math.sin(state.time * 18) * 26;
+          const wind = 1350 + speed * 0.65 + Math.sin(state.time * 31) * 90;
+
+          const audio = getAudio();
+          missile.sound.osc.frequency.setTargetAtTime(whistle, audio.currentTime, 0.035);
+          missile.sound.filter.frequency.setTargetAtTime(wind, audio.currentTime, 0.035);
+        }
+
         for (const enemy of [...state.enemies]) {
           if (dist(missile, enemy) > missile.radius + enemy.radius) continue;
 
-          hitEnemy(enemy, missile.damage, { reassign: false, quiet: true });
-          playSound("explode");
+          hitEnemy(enemy, missile.damage, {
+            reassign: false,
+            quiet: true,
+            itemDropMode: "healOnly"
+          });
+          stopMissileLoopSound(missile);
+          playMissileExplosionSound();
+          state.shake = Math.max(state.shake, 12);
           missile.life = 0;
           break;
         }
       }
 
-      state.homingMissiles = state.homingMissiles.filter((m) => m.life > 0);
+      const finishedFlightAudios = new Set();
+      state.homingMissiles = state.homingMissiles.filter((missile) => {
+        const alive =
+          missile.life > 0 &&
+          missile.x > -120 &&
+          missile.x < state.w + 120 &&
+          missile.y > -120 &&
+          missile.y < state.h + 120;
+
+        if (!alive) {
+          stopMissileLoopSound(missile);
+          if (missile.flightAudio) finishedFlightAudios.add(missile.flightAudio);
+        }
+
+        return alive;
+      });
+
+      for (const audio of finishedFlightAudios) {
+        const stillFlying = state.homingMissiles.some(
+          (missile) => missile.flightAudio === audio
+        );
+        if (!stillFlying) stopAudioClip(audio);
+      }
+    }
+
+    function updateMachinegun(dt) {
+      
+      if (!state.machinegunQueue.length) {
+        stopMachinegunSoundIfDone();
+        return;
+      }
+
+      state.machinegunFireTimer -= dt;
+
+      if (state.machinegunFireTimer > 0) return;
+
+      state.machinegunFireTimer = MACHINEGUN_FIRE_INTERVAL;
+
+      const enemy = state.machinegunQueue.shift();
+
+      if (!enemy) {
+        stopMachinegunSoundIfDone();
+        return;
+      }
+
+      const livingEnemies = state.enemies.filter((target) => target.hp > 0);
+      const targetStillAlive = livingEnemies.some((target) => target === enemy);
+
+      if (livingEnemies.length && targetStillAlive) {
+        fireBulletTo(enemy, 0.6, {
+          machinegunAudio: state.machinegunAudio,
+          machinegun: true
+        });
+      } else if (livingEnemies.length) {
+        const target = livingEnemies[Math.floor(rand(0, livingEnemies.length))];
+        fireBulletTo(target, 0.6, {
+          machinegunAudio: state.machinegunAudio,
+          machinegun: true
+        });
+      } else {
+        fireBulletAtAngle(rand(0, Math.PI * 2), 0.6, {
+          machinegunAudio: state.machinegunAudio,
+          machinegun: true
+        });
+      }
+
+      stopMachinegunSoundIfDone();
     }
 
     function shouldAdvanceForKill(enemy) {
@@ -2834,6 +3165,11 @@
       const reassign = options.reassign !== false;
       const quiet = options.quiet === true;
       const awardExp = options.awardExp !== false;
+      const dropItems = options.dropItems !== false;
+      const bossHitPowerup = options.bossHitPowerup !== false;
+      const itemDropMode = options.itemDropMode || (dropItems ? "normal" : "none");
+      const allowNormalItems = itemDropMode === "normal";
+      const allowHealItems = itemDropMode === "normal" || itemDropMode === "healOnly";
       enemy.hp -= damage;
       state.clean = clamp(state.clean + damage * 0.025, 0, 100);
       if (enemy.type === "boss") {
@@ -2851,15 +3187,20 @@
         state.shake = Math.max(state.shake, enemy.type === "minion" ? 7 : 16);
         addFloater(enemy.x, enemy.y, enemy.type === "minion" ? "浄化" : "大浄化", enemy.type === "boss" ? "#f5b84b" : "#8fd14f");
         for (let i = 0; i < 28; i++) addParticle(enemy.x, enemy.y, i % 2 ? enemy.kind.color : "#f5f7ef", rand(70, 260), rand(0.35, 0.85), rand(3, 9));
-        dropPowerup(enemy.x + rand(-18, 18), enemy.y + rand(-18, 18), enemy.type);
-        if (enemy.type === "minion" && Math.random() < 0.18) {
+        if (allowNormalItems) {
+          dropPowerup(enemy.x + rand(-18, 18), enemy.y + rand(-18, 18), enemy.type);
+        }
+        if (allowHealItems && enemy.type === "minion" && Math.random() < 0.18) {
           spawnPowerup(enemy.x + rand(-16, 16), enemy.y + rand(-16, 16), "heal");
+        }
+        if (itemDropMode === "healOnly" && enemy.type === "boss") {
+          spawnPowerup(enemy.x + rand(-18, 18), enemy.y + rand(-18, 18), "heal");
         }
         if (awardExp) awardEnemyKillExp(enemy);
         processLevelUps();
         return true;
       }
-      dropBossHitPowerup(enemy);
+      if (bossHitPowerup) dropBossHitPowerup(enemy, itemDropMode);
       if (reassign) assignWord(enemy);
       return false;
     }
@@ -2959,7 +3300,11 @@
       for (const enemy of [...state.enemies]) {
         if (distanceToSegment(enemy, start, end) > enemy.radius + beamRadius) continue;
         const damage = playerAttackDamage() * (enemy.type === "boss" ? 0.22 : 0.34);
-        const killed = hitEnemy(enemy, damage, { reassign: false, quiet: true });
+        const killed = hitEnemy(enemy, damage, {
+          reassign: false,
+          quiet: true,
+          itemDropMode: "healOnly"
+        });
         playSoundAt("hit", 1.35);
         if (killed) {
           state.enemies = state.enemies.filter((target) => target !== enemy);
@@ -3042,7 +3387,8 @@
 
               hitEnemy(enemy, 999999, {
                   reassign: false,
-                  quiet: true
+                  quiet: true,
+                  itemDropMode: "healOnly"
                 }
               );
 
@@ -3248,6 +3594,9 @@
       const expGain = state.enemies.reduce((sum, enemy) => sum + enemyExpValue(enemy, 1.55), 0);
       state.enemies.length = 0;
       state.bullets.length = 0;
+      stopMachinegunSoundNow();
+      state.machinegunQueue.length = 0;
+      state.machinegunFireTimer = 0;
       state.enemyBullets.length = 0;
       state.phaseKills += defeated;
       state.score += defeated * 180;
@@ -3471,6 +3820,7 @@
       updateThunderChain(dt);
       updateLightningEffects(dt);
       updateHomingMissiles(dt);
+      updateMachinegun(dt);
 
       for (const bullet of state.bullets) {
         const lockedEnemy = state.enemies.find((enemy) => enemy.id === bullet.targetId);
@@ -3489,7 +3839,11 @@
             bullet.hitIds.push(enemy.id);
             playSoundAt(bullet.pierce ? "pierceHit" : "hit", comboHitPitch());
             const bossPierce = bullet.pierce && enemy.type === "boss";
-            const killed = hitEnemy(enemy, bullet.power);
+            const killed = hitEnemy(enemy, bullet.power, bullet.machinegun ? {
+              reassign: false,
+              quiet: true,
+              itemDropMode: "healOnly"
+            } : {});
             if (bullet.explosive) explodeBulletAt(enemy, bullet.power, enemy.id);
             if (killed) state.enemies = state.enemies.filter((target) => target !== enemy);
             const canBounce = !bullet.pierce || bossPierce;
@@ -3500,6 +3854,7 @@
         }
       }
       state.bullets = state.bullets.filter((bullet) => bullet.life > 0 && bullet.x > -50 && bullet.x < state.w + 50 && bullet.y > -70 && bullet.y < state.h + 70);
+      stopMachinegunSoundIfDone();
 
       for (const p of state.particles) {
         p.x += p.vx * dt;
@@ -4040,26 +4395,76 @@
         ctx.translate(missile.x, missile.y);
         ctx.rotate(angle);
 
-        ctx.fillStyle = "#ff8a65";
+        ctx.fillStyle = "#ffd180";
         ctx.strokeStyle = "#fff3e0";
         ctx.lineWidth = 2;
         ctx.shadowColor = "#ffcc80";
         ctx.shadowBlur = 12;
 
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
         ctx.beginPath();
-        ctx.moveTo(14, 0);
-        ctx.lineTo(-8, -6);
-        ctx.lineTo(-4, 0);
-        ctx.lineTo(-8, 6);
+        ctx.moveTo(19, 0);
+        ctx.bezierCurveTo(16, -8, 9, -11, 3, -7);
+        ctx.lineTo(-16, -7);
+        ctx.lineTo(-22, -3);
+        ctx.lineTo(-22, 3);
+        ctx.lineTo(-16, 7);
+        ctx.lineTo(3, 7);
+        ctx.bezierCurveTo(9, 11, 16, 8, 19, 0);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#ffd180";
+        ctx.strokeStyle = "rgba(255,243,224,0.9)";
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(-8, -4);
-        ctx.lineTo(-19, 0);
-        ctx.lineTo(-8, 4);
+        ctx.moveTo(5, -6.5);
+        ctx.lineTo(1, 6.5);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ff8a65";
+        ctx.strokeStyle = "#fff3e0";
+        ctx.lineWidth = 1.8;
+
+        ctx.beginPath();
+        ctx.moveTo(-3, -7);
+        ctx.lineTo(-12, -15);
+        ctx.lineTo(-7, -5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-3, 7);
+        ctx.lineTo(-12, 15);
+        ctx.lineTo(-7, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-17, -7);
+        ctx.lineTo(-29, -14);
+        ctx.lineTo(-21, -2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-17, 7);
+        ctx.lineTo(-29, 14);
+        ctx.lineTo(-21, 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffe0a3";
+        ctx.beginPath();
+        ctx.moveTo(-22, -3.5);
+        ctx.lineTo(-31, 0);
+        ctx.lineTo(-22, 3.5);
         ctx.closePath();
         ctx.fill();
 
@@ -4325,6 +4730,8 @@
       } else if (kind === "missile") {
         ctx.save();
 
+        ctx.rotate(-0.18);
+
         // 機体
         ctx.fillStyle = "#ff8a65";
         ctx.strokeStyle = "#fff3e0";
@@ -4357,6 +4764,65 @@
         ctx.lineTo(-r * 0.95, r * 0.18);
         ctx.closePath();
         ctx.fill();
+        ctx.restore();
+      } else if (kind === "machinegun") {
+        ctx.save();
+
+        ctx.rotate(-0.18);
+
+        ctx.fillStyle = "#444";
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 1.2;
+
+        // サプレッサー
+        ctx.fillRect(-16, -2, 7, 4);
+
+        // 銃身
+        ctx.fillRect(-9, -3, 24, 6);
+
+        // フロントサイト
+        ctx.fillRect(-5, -7, 2, 4);
+
+        // レシーバー
+        ctx.fillRect(2, -6, 16, 12);
+
+        // ストック
+        ctx.fillRect(17, -2, 8, 4);
+        ctx.fillRect(23, -5, 2, 10);
+
+        // グリップ
+        ctx.beginPath();
+        ctx.moveTo(7, 5);
+        ctx.lineTo(13, 5);
+        ctx.lineTo(11, 17);
+        ctx.lineTo(5, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // マガジン
+        ctx.beginPath();
+        ctx.moveTo(1, 5);
+        ctx.lineTo(6, 5);
+        ctx.lineTo(4, 16);
+        ctx.lineTo(-1, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // トリガーガード
+        ctx.beginPath();
+        ctx.arc(10, 3, 3.5, 0, Math.PI, true);
+        ctx.stroke();
+
+        // トリガー
+        ctx.beginPath();
+        ctx.moveTo(10, 3);
+        ctx.lineTo(9, 8);
+        ctx.stroke();
+
+        // ハイライト
+        ctx.fillStyle = "rgba(255,255,255,0.28)";
+        ctx.fillRect(-8, -2, 22, 1.2);
+
         ctx.restore();
       }
     }
