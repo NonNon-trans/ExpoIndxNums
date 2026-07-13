@@ -1745,6 +1745,7 @@ let hitStopScale = 0.16;
         boss.rechargeInterrupted = 0;
         boss.shieldGenerators = [];
         boss.turrets = [];
+        boss.mothershipEngineGlows = [];
         boss.docked = false;
         boss.dockOffsetX = 0;
         boss.detachTimer = 0;
@@ -3871,52 +3872,121 @@ let hitStopScale = 0.16;
 
     function createMothershipModel() {
       const group = new THREE.Group();
-      const armorMat = new THREE.MeshStandardMaterial({ color: 0x111722, emissive: 0x170207, roughness: 0.34, metalness: 0.62 });
-      const darkMat = new THREE.MeshStandardMaterial({ color: 0x05080f, emissive: 0x050103, roughness: 0.55, metalness: 0.5 });
-      const glowMat = new THREE.MeshStandardMaterial({ color: 0xff2445, emissive: 0xe0002c, roughness: 0.14 });
-      const turretMat = new THREE.MeshStandardMaterial({ color: 0x2e2636, emissive: 0x19030a, roughness: 0.3, metalness: 0.58 });
-      const redLineMat = new THREE.MeshBasicMaterial({ color: 0xff4055, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending, depthWrite: false });
+      const armorMat = new THREE.MeshStandardMaterial({ color: 0x080a0f, emissive: 0x020103, roughness: 0.5, metalness: 0.82 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x03050a, emissive: 0x010103, roughness: 0.58, metalness: 0.72 });
+      const steelMat = new THREE.MeshStandardMaterial({ color: 0x171b24, emissive: 0x030407, roughness: 0.42, metalness: 0.76 });
+      const gunmetalMat = new THREE.MeshStandardMaterial({ color: 0x2c313c, emissive: 0x05060a, roughness: 0.34, metalness: 0.88 });
+      const glowMat = new THREE.MeshStandardMaterial({ color: 0x4a050b, emissive: 0xaa0018, emissiveIntensity: 1.8, roughness: 0.28, metalness: 0.42 });
+      const turretMat = new THREE.MeshStandardMaterial({ color: 0x151820, emissive: 0x070108, roughness: 0.32, metalness: 0.86 });
+      const bridgeWindowMat = new THREE.MeshBasicMaterial({ color: 0xff1838, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending, depthWrite: false });
+      const redLineMat = new THREE.MeshBasicMaterial({ color: 0xff1838, transparent: true, opacity: 0.78, blending: THREE.AdditiveBlending, depthWrite: false });
       const cyanLineMat = new THREE.MeshBasicMaterial({ color: 0x67f4ff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false });
 
-      const hull = new THREE.Mesh(new THREE.BoxGeometry(92, 16, 88), armorMat);
-      hull.position.set(0, 0, -8);
-      group.add(hull);
-      const nose = new THREE.Mesh(new THREE.ConeGeometry(38, 34, 5), armorMat);
-      nose.rotation.x = Math.PI / 2;
-      nose.scale.set(1.35, 0.42, 1);
-      nose.position.z = 52;
-      group.add(nose);
-      const belly = new THREE.Mesh(new THREE.CapsuleGeometry(16, 96, 10, 20), darkMat);
-      belly.rotation.x = Math.PI / 2;
-      belly.position.set(0, -5, -8);
-      belly.scale.set(1.35, 0.8, 1);
-      group.add(belly);
-      const bridge = new THREE.Mesh(new THREE.BoxGeometry(24, 26, 18), darkMat);
-      bridge.position.set(0, 18, -22);
-      group.add(bridge);
+      const visual = new THREE.Group();
+      group.add(visual);
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(88, 22, 92), armorMat);
+      mainHull.position.set(0, 0, -11);
+      visual.add(mainHull);
+      const upperDeck = new THREE.Mesh(new THREE.BoxGeometry(58, 8, 76), steelMat);
+      upperDeck.position.set(0, 14, -15);
+      visual.add(upperDeck);
+      const lowerKeel = new THREE.Mesh(new THREE.BoxGeometry(44, 10, 98), darkMat);
+      lowerKeel.position.set(0, -14, -10);
+      visual.add(lowerKeel);
+
+      const spearNose = new THREE.Mesh(new THREE.ConeGeometry(23, 66, 5), armorMat);
+      spearNose.rotation.x = Math.PI / 2;
+      spearNose.scale.set(1.35, 0.52, 1);
+      spearNose.position.z = 76;
+      visual.add(spearNose);
+      const noseSpine = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 58), gunmetalMat);
+      noseSpine.position.set(0, 8.5, 52);
+      visual.add(noseSpine);
+      const noseKeel = new THREE.Mesh(new THREE.BoxGeometry(8, 5, 52), darkMat);
+      noseKeel.position.set(0, -8.5, 51);
+      visual.add(noseKeel);
+      [-1, 1].forEach((side) => {
+        const noseArmor = new THREE.Mesh(new THREE.BoxGeometry(18, 5.5, 46), steelMat);
+        noseArmor.position.set(side * 18, 1.4, 48);
+        noseArmor.rotation.y = side * 0.14;
+        visual.add(noseArmor);
+        const noseSlit = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 28), redLineMat);
+        noseSlit.position.set(side * 28, 4.2, 45);
+        noseSlit.rotation.y = side * 0.18;
+        visual.add(noseSlit);
+      });
+
+      const bridgeBase = new THREE.Mesh(new THREE.BoxGeometry(34, 8, 24), darkMat);
+      bridgeBase.position.set(0, 24, -18);
+      visual.add(bridgeBase);
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(24, 12, 16), steelMat);
+      bridge.position.set(0, 32, -18);
+      visual.add(bridge);
+      const bridgeWindow = new THREE.Mesh(new THREE.BoxGeometry(25, 1.2, 3.2), bridgeWindowMat);
+      bridgeWindow.position.set(0, 32.5, -7.8);
+      visual.add(bridgeWindow);
+      const sensorTower = new THREE.Mesh(new THREE.BoxGeometry(9, 18, 8), gunmetalMat);
+      sensorTower.position.set(0, 45, -24);
+      visual.add(sensorTower);
+      const radar = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 0.7, 8), gunmetalMat);
+      radar.position.set(0, 56, -25);
+      radar.rotation.x = Math.PI / 2;
+      visual.add(radar);
+      [-1, 1].forEach((side) => {
+        const antenna = new THREE.Mesh(new THREE.BoxGeometry(0.8, 18, 0.8), redLineMat);
+        antenna.position.set(side * 11, 52, -18);
+        antenna.rotation.z = side * 0.18;
+        visual.add(antenna);
+        const bridgePod = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 12), darkMat);
+        bridgePod.position.set(side * 23, 23, -22);
+        visual.add(bridgePod);
+      });
 
       [-1, 1].forEach((side) => {
-        const bay = new THREE.Mesh(new THREE.BoxGeometry(36, 10, 58), armorMat);
-        bay.position.set(side * 58, -2, -8);
-        bay.rotation.z = side * 0.08;
-        group.add(bay);
-        const launchGlow = new THREE.Mesh(new THREE.BoxGeometry(22, 0.35, 8), cyanLineMat);
-        launchGlow.position.set(side * 58, -8, 14);
-        group.add(launchGlow);
-        const wing = new THREE.Mesh(new THREE.BoxGeometry(48, 4, 30), armorMat);
-        wing.position.set(side * 80, -3, -18);
-        wing.rotation.z = side * 0.12;
-        group.add(wing);
+        const sideArmor = new THREE.Mesh(new THREE.BoxGeometry(38, 14, 72), steelMat);
+        sideArmor.position.set(side * 58, -1, -10);
+        sideArmor.rotation.z = side * 0.05;
+        visual.add(sideArmor);
+        const outerWing = new THREE.Mesh(new THREE.BoxGeometry(52, 6, 42), armorMat);
+        outerWing.position.set(side * 84, -3, -20);
+        outerWing.rotation.z = side * 0.11;
+        visual.add(outerWing);
+        const launcher = new THREE.Mesh(new THREE.BoxGeometry(24, 6, 18), gunmetalMat);
+        launcher.position.set(side * 62, -10, 18);
+        visual.add(launcher);
+        const launchGlow = new THREE.Mesh(new THREE.BoxGeometry(24, 0.35, 7), redLineMat);
+        launchGlow.position.set(side * 62, -13.4, 18);
+        visual.add(launchGlow);
+        for (let i = 0; i < 4; i++) {
+          const vent = new THREE.Mesh(new THREE.BoxGeometry(0.45, 4, 9), redLineMat);
+          vent.position.set(side * (44 + i * 7), 7, -26);
+          visual.add(vent);
+        }
+        for (let i = 0; i < 5; i++) {
+          const fin = new THREE.Mesh(new THREE.BoxGeometry(2.2, 12, 3.5), gunmetalMat);
+          fin.position.set(side * (76 + i * 5), -2, -42 + i * 5);
+          fin.rotation.z = side * 0.12;
+          visual.add(fin);
+        }
       });
 
       boss.core = new THREE.Mesh(new THREE.SphereGeometry(13.5, 34, 20), glowMat);
       boss.core.scale.set(1.15, 0.82, 0.6);
       boss.core.position.set(0, 1.5, 38);
       group.add(boss.core);
+      const coreFrame = new THREE.Mesh(new THREE.BoxGeometry(36, 22, 7), darkMat);
+      coreFrame.position.set(0, 1.5, 34.8);
+      group.add(coreFrame);
+      group.add(boss.core);
       const coreRing = new THREE.Mesh(new THREE.TorusGeometry(16.5, 0.42, 8, 44), redLineMat);
       coreRing.position.copy(boss.core.position);
       coreRing.rotation.x = Math.PI / 2;
       group.add(coreRing);
+      const coreGuard = new THREE.Mesh(new THREE.TorusGeometry(21, 0.7, 8, 48), gunmetalMat);
+      coreGuard.position.copy(boss.core.position);
+      coreGuard.rotation.x = Math.PI / 2;
+      group.add(coreGuard);
 
       boss.shieldMesh = new THREE.Mesh(
         new THREE.SphereGeometry(22, 32, 18),
@@ -3975,9 +4045,12 @@ let hitStopScale = 0.16;
         beacon.scale.set(12, 18, 1);
         generator.add(beacon);
 
-        const mount = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 8), darkMat);
+        const mount = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 10), darkMat);
         mount.position.y = -3.2;
         generator.add(mount);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(15, 1.2, 13), gunmetalMat);
+        frame.position.y = -5.6;
+        generator.add(frame);
         group.add(generator);
         boss.shieldGenerators.push({
           name: spec.name,
@@ -4003,12 +4076,19 @@ let hitStopScale = 0.16;
       ].forEach((spec) => {
         const turret = new THREE.Group();
         turret.position.set(...spec.pos);
-        const base = new THREE.Mesh(new THREE.BoxGeometry(10, 5.6, 8.5), turretMat);
+        const base = new THREE.Mesh(new THREE.BoxGeometry(13, 6.2, 10), turretMat);
         turret.add(base);
-        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.3, 19, 12), turretMat);
+        const armorSkirt = new THREE.Mesh(new THREE.BoxGeometry(16, 2, 12), gunmetalMat);
+        armorSkirt.position.y = -3.3;
+        turret.add(armorSkirt);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.6, 21, 8), turretMat);
         barrel.rotation.x = Math.PI / 2;
-        barrel.position.z = 11;
+        barrel.position.z = 12;
         turret.add(barrel);
+        const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.55, 2.3, 8), gunmetalMat);
+        muzzle.rotation.x = Math.PI / 2;
+        muzzle.position.z = 23.5;
+        turret.add(muzzle);
         const sight = new THREE.Mesh(new THREE.TorusGeometry(6.5, 0.14, 6, 28), redLineMat);
         sight.rotation.x = Math.PI / 2;
         turret.add(sight);
@@ -4016,18 +4096,68 @@ let hitStopScale = 0.16;
         boss.turrets.push({ name: spec.name, group: turret, hp: 24, maxHp: 24, alive: true, flash: 0, smokeTimer: 0 });
       });
 
-      [-36, -12, 12, 36].forEach((x) => {
-        const engine = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 6.5, 13, 20), darkMat);
-        engine.rotation.x = Math.PI / 2;
-        engine.position.set(x, -7, -58);
-        group.add(engine);
+      boss.mothershipEngineGlows = [];
+      [-42, -18, 18, 42].forEach((x, index) => {
+        const engine = new THREE.Group();
+        engine.position.set(x, -8, -61);
+        const nozzleFrame = new THREE.Mesh(new THREE.CylinderGeometry(7.6, 9.4, 6.5, 8), gunmetalMat);
+        nozzleFrame.rotation.x = Math.PI / 2;
+        engine.add(nozzleFrame);
+        const innerNozzle = new THREE.Mesh(new THREE.CylinderGeometry(4.4, 5.8, 8.8, 8), darkMat);
+        innerNozzle.rotation.x = Math.PI / 2;
+        innerNozzle.position.z = -1.4;
+        engine.add(innerNozzle);
+        for (let i = 0; i < 6; i++) {
+          const fin = new THREE.Mesh(new THREE.BoxGeometry(1.0, 7.8, 2.2), steelMat);
+          fin.rotation.z = (Math.PI / 3) * i;
+          fin.position.z = 0.6;
+          engine.add(fin);
+        }
         const glow = new THREE.Mesh(
-          new THREE.SphereGeometry(3.4, 16, 8),
-          new THREE.MeshBasicMaterial({ color: 0xff3048, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending, depthWrite: false })
+          new THREE.SphereGeometry(4.3, 16, 8),
+          new THREE.MeshBasicMaterial({ color: 0x73dfff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
         );
-        glow.scale.set(1.1, 0.75, 0.6);
-        glow.position.set(x, -7, -66);
-        group.add(glow);
+        glow.scale.set(1.0, 0.72, 0.58);
+        glow.position.z = -7.2;
+        engine.add(glow);
+        const hotCore = new THREE.Mesh(
+          new THREE.SphereGeometry(2.2, 12, 8),
+          new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        hotCore.scale.set(0.9, 0.6, 0.48);
+        hotCore.position.z = -7.8;
+        engine.add(hotCore);
+        boss.mothershipEngineGlows.push({ glow, hotCore, phase: index * 1.4 });
+        group.add(engine);
+      });
+
+      [-58, 58].forEach((x) => {
+        const lowerTank = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 6.3, 54, 8), darkMat);
+        lowerTank.rotation.x = Math.PI / 2;
+        lowerTank.position.set(x, -22, -15);
+        group.add(lowerTank);
+        const hangar = new THREE.Mesh(new THREE.BoxGeometry(20, 5, 18), gunmetalMat);
+        hangar.position.set(x * 0.55, -24, 18);
+        group.add(hangar);
+      });
+
+      for (let i = 0; i < 20; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const panel = new THREE.Mesh(
+          new THREE.BoxGeometry(THREE.MathUtils.randFloat(8, 18), 0.55, THREE.MathUtils.randFloat(5, 14)),
+          i % 3 === 0 ? gunmetalMat : steelMat
+        );
+        panel.position.set(side * THREE.MathUtils.randFloat(10, 42), 11.4 + (i % 4) * 0.35, THREE.MathUtils.randFloat(-46, 30));
+        panel.rotation.z = side * THREE.MathUtils.randFloat(0.01, 0.05);
+        group.add(panel);
+      }
+
+      [-1, 1].forEach((side) => {
+        for (let i = 0; i < 6; i++) {
+          const warningLight = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), redLineMat);
+          warningLight.position.set(side * (18 + i * 10), 14.6, -48 + i * 12);
+          group.add(warningLight);
+        }
       });
 
       // 母艦は通常ボスより大きくしつつ、シールド発生装置を狙えるサイズに収める。
@@ -4378,6 +4508,15 @@ let hitStopScale = 0.16;
           spawnHitEffect(turret.group.getWorldPosition(new THREE.Vector3()), 0x777777);
         }
       });
+      if (boss.kind === "mothership" && boss.mothershipEngineGlows) {
+        boss.mothershipEngineGlows.forEach((engine, index) => {
+          const pulse = 0.88 + Math.sin(clock.elapsedTime * 7 + engine.phase + index * 0.7) * 0.12;
+          engine.glow.scale.set(1.0 * pulse, 0.72 * pulse, 0.58 * pulse);
+          engine.glow.material.opacity = 0.58 + pulse * 0.24;
+          engine.hotCore.scale.set(0.82 * pulse, 0.55 * pulse, 0.45 * pulse);
+          engine.hotCore.material.opacity = 0.64 + pulse * 0.25;
+        });
+      }
     }
 
     function getBossDefeatLocalPoint(targetBoss, wide = false) {
