@@ -3198,9 +3198,10 @@ let hitStopScale = 0.16;
     }
 
     function fireWideWeapon(weapon) {
-      spawnDirectedPlayerBullet(0, weapon, -weapon.spreadAngle);
-      spawnDirectedPlayerBullet(0, weapon, 0);
-      spawnDirectedPlayerBullet(0, weapon, weapon.spreadAngle);
+      // 中央2発はVULCANと同じ左右砲口、外側2発だけWIDE用に角度を付ける。
+      firePairedBullets(weapon);
+      spawnDirectedPlayerBullet(-1.6, weapon, -weapon.spreadAngle);
+      spawnDirectedPlayerBullet(1.6, weapon, weapon.spreadAngle);
     }
 
     function firePlasmaWeapon(weapon) {
