@@ -99,6 +99,11 @@
       backdrop-filter: blur(12px);
     }
 
+    .continueMetric {
+      grid-column: 1 / -1;
+      min-height: 48px;
+    }
+
     .label {
       display: block;
       color: var(--muted);
@@ -983,6 +988,11 @@
       display: none;
     }
 
+    #hud.overlay-difficulty {
+      opacity: 0.18;
+      transition: opacity 180ms ease;
+    }
+
     .overlayBox {
       width: min(1840px, calc(100vw - 160px));
       min-height: min(880px, calc(100vh - 110px));
@@ -1005,8 +1015,73 @@
       padding-bottom: clamp(26px, 3.5vh, 44px);
     }
 
+    .overlayBox.mode-difficulty > .subtitle,
+    .overlayBox.mode-fighter > h1,
+    .overlayBox.mode-fighter > .subtitle,
     .overlayBox.result-active > h1,
     .overlayBox.result-active > .subtitle {
+      display: none;
+    }
+
+    .overlayBox.mode-difficulty .fighterSelect,
+    .overlayBox.mode-difficulty #startButton,
+    .overlayBox.mode-difficulty .resultPanel,
+    .overlayBox.mode-difficulty .resultActions,
+    .overlayBox.mode-fighter .difficultySelect,
+    .overlayBox.mode-fighter .resultPanel,
+    .overlayBox.mode-fighter .resultActions,
+    .overlayBox.result-active .fighterSelect,
+    .overlayBox.result-active .difficultySelect,
+    .overlayBox.result-active #startButton {
+      display: none;
+    }
+
+    .overlayBox.mode-difficulty {
+      min-height: auto;
+      width: min(980px, calc(100vw - 160px));
+      padding-top: clamp(44px, 6vh, 74px);
+      padding-bottom: clamp(48px, 6.5vh, 78px);
+    }
+
+    .overlayBox.mode-difficulty > h1 {
+      margin: 0 0 clamp(28px, 4vh, 42px);
+      color: rgba(255, 255, 255, 0.96);
+      font-size: clamp(34px, 4.4vw, 64px);
+      font-weight: 1000;
+      line-height: 1;
+      letter-spacing: 0.045em;
+      text-shadow:
+        0 0 18px rgba(119, 246, 255, 0.28),
+        0 0 42px rgba(77, 210, 255, 0.16);
+    }
+
+    .overlayBox.mode-difficulty .difficultySelect {
+      width: min(820px, 100%);
+      margin-bottom: 0;
+    }
+
+    .overlayBox.mode-difficulty .difficultySelectTitle {
+      margin-bottom: clamp(22px, 3vh, 34px);
+      font-size: clamp(18px, 2.35vw, 32px);
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 22px rgba(119, 246, 255, 0.38);
+    }
+
+    .overlayBox.mode-difficulty .difficultyGrid {
+      gap: clamp(12px, 1.5vw, 18px);
+    }
+
+    .overlayBox.mode-difficulty .difficultyCard {
+      min-height: clamp(98px, 13vh, 128px);
+      padding: clamp(18px, 2vw, 28px);
+    }
+
+    .overlayBox.mode-difficulty .difficultyName {
+      font-size: clamp(22px, 2.2vw, 34px);
+    }
+
+    .overlayBox.mode-difficulty .difficultyDesc {
       display: none;
     }
 
@@ -1083,6 +1158,49 @@
 
     .overlayBox.result-active .fighterSelect {
       margin-bottom: clamp(18px, 2.4vh, 30px);
+    }
+
+    .resultActions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: clamp(16px, 2vh, 24px);
+    }
+
+    .resultActions.hidden {
+      display: none;
+    }
+
+    .resultActions button.hidden {
+      display: none;
+    }
+
+    .resultActions button {
+      min-width: clamp(210px, 18vw, 300px);
+      min-height: 56px;
+      padding: 0 28px;
+      border: 0;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #07152b;
+      font: inherit;
+      font-size: clamp(16px, 1.25vw, 21px);
+      font-weight: 1000;
+      cursor: pointer;
+      box-shadow: 0 0 22px rgba(119, 246, 255, 0.16);
+    }
+
+    .resultActions button.secondary {
+      border: 1px solid rgba(119, 246, 255, 0.36);
+      background: rgba(5, 16, 34, 0.88);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .resultActions button:disabled {
+      cursor: default;
+      opacity: 0.5;
+      box-shadow: none;
     }
 
     .resultPrimaryGrid,
@@ -1253,6 +1371,67 @@
       line-height: 1.25;
     }
 
+    .difficultySelect {
+      width: min(760px, 100%);
+      margin: 0 auto clamp(18px, 2.5vh, 30px);
+      text-align: center;
+    }
+
+    .difficultySelectTitle {
+      margin: 0 0 10px;
+      color: rgba(143, 241, 255, 0.9);
+      font-size: clamp(12px, 0.95vw, 15px);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
+
+    .difficultyGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .difficultyCard {
+      min-height: 78px;
+      display: grid;
+      align-content: center;
+      gap: 6px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 8px;
+      background: rgba(2, 9, 20, 0.66);
+      color: rgba(255, 255, 255, 0.58);
+      font: inherit;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .difficultyCard:hover,
+    .difficultyCard.selected {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px rgba(119, 246, 255, 0.18), 0 0 20px rgba(72, 210, 255, 0.2);
+      color: white;
+    }
+
+    .difficultyCard.selected {
+      background: linear-gradient(180deg, rgba(32, 112, 154, 0.28), rgba(4, 13, 29, 0.84));
+      transform: translateY(-1px);
+    }
+
+    .difficultyName {
+      font-size: clamp(15px, 1.1vw, 20px);
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .difficultyDesc {
+      color: rgba(255, 214, 90, 0.86);
+      font-size: clamp(10px, 0.78vw, 12px);
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
     #startButton {
       display: inline-grid;
       place-items: center;
@@ -1311,6 +1490,15 @@
       .overlayBox.result-active .fighterSilhouette {
         height: clamp(136px, 18vh, 184px);
       }
+
+      .overlayBox.mode-difficulty {
+        padding-top: 40px;
+        padding-bottom: 44px;
+      }
+
+      .overlayBox.mode-difficulty .difficultyCard {
+        min-height: 104px;
+      }
     }
 
     @media (max-width: 1180px) {
@@ -1345,6 +1533,14 @@
       .fighterSilhouette {
         height: clamp(150px, 21vw, 210px);
       }
+
+      .difficultySelect {
+        max-width: 680px;
+      }
+
+      .overlayBox.mode-difficulty {
+        width: min(820px, calc(100vw - 48px));
+      }
     }
 
     @media (max-width: 900px) {
@@ -1362,6 +1558,23 @@
 
       .fighterSilhouette {
         height: clamp(140px, 25vw, 190px);
+      }
+
+      .difficultyGrid {
+        gap: 8px;
+      }
+
+      .difficultyCard {
+        min-height: 68px;
+        padding: 10px 8px;
+      }
+
+      .overlayBox.mode-difficulty .difficultyGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .overlayBox.mode-difficulty .difficultyCard {
+        min-height: 82px;
       }
     }
 
@@ -1388,6 +1601,26 @@
       .overlayBox.result-active .resultTitle {
         font-size: clamp(28px, 9vw, 46px);
         white-space: normal;
+      }
+
+      .overlayBox.mode-difficulty {
+        width: min(520px, calc(100vw - 28px));
+        max-height: calc(100vh - 28px);
+        padding: 28px 18px;
+      }
+
+      .overlayBox.mode-difficulty .difficultySelectTitle {
+        font-size: clamp(24px, 8vw, 38px);
+      }
+
+      .overlayBox.mode-difficulty .difficultyCard {
+        min-height: 74px;
+      }
+
+      .overlayBox.mode-difficulty > h1 {
+        margin-bottom: 24px;
+        font-size: clamp(24px, 7vw, 34px);
+        letter-spacing: 0.025em;
       }
 
       h1 {
@@ -1431,6 +1664,19 @@
 
       .fighterStats {
         font-size: 11px;
+      }
+
+      .difficultySelect {
+        margin-bottom: 16px;
+      }
+
+      .difficultyGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .difficultyCard {
+        min-height: 54px;
+        padding: 9px 10px;
       }
 
       #startButton {
@@ -1497,12 +1743,13 @@
 <body>
   <div id="damageFlash" aria-hidden="true"></div>
   <div id="bossWhiteFlash" aria-hidden="true"></div>
-  <div id="hud">
+  <div id="hud" class="overlay-difficulty">
     <div class="metrics">
       <div class="metric"><span class="label">KILLS</span><span class="value" id="killsValue">0 / 100</span></div>
       <div class="metric"><span class="label">HP</span><span class="value" id="hpValue">100</span></div>
       <div class="metric"><span class="label">WAVE</span><span class="value" id="waveValue">1</span></div>
       <div class="metric"><span class="label">SCORE</span><span class="value" id="scoreValue">0</span></div>
+      <div class="metric continueMetric"><span class="label">CONTINUE</span><span class="value" id="continueValue">×2</span></div>
       <div id="levelHud" aria-live="polite">
         <span id="levelValue">LEVEL 1</span>
         <div id="expBarOuter"><div id="expBar"></div></div>
@@ -1542,7 +1789,7 @@
   </div>
 
   <div id="overlay">
-    <div class="overlayBox">
+    <div class="overlayBox mode-difficulty">
       <h1>Space Fang Shooter</h1>
       <p class="subtitle">正面から迫る敵艦隊を撃ち落とす3D戦闘機シューティングゲーム</p>
       <div id="result" class="resultPanel hidden" aria-live="polite">
@@ -1601,7 +1848,28 @@
           </button>
         </div>
       </div>
+      <div class="difficultySelect" aria-label="難易度選択">
+        <p class="difficultySelectTitle">SELECT DIFFICULTY</p>
+        <div class="difficultyGrid" id="difficultyGrid">
+          <button class="difficultyCard" type="button" data-difficulty="EASY">
+            <span class="difficultyName">EASY</span>
+            <span class="difficultyDesc">CURRENT BALANCE</span>
+          </button>
+          <button class="difficultyCard selected" type="button" data-difficulty="NORMAL">
+            <span class="difficultyName">NORMAL</span>
+            <span class="difficultyDesc">ARCADE STANDARD</span>
+          </button>
+          <button class="difficultyCard" type="button" data-difficulty="HARD">
+            <span class="difficultyName">HARD</span>
+            <span class="difficultyDesc">ELITE PRESSURE</span>
+          </button>
+        </div>
+      </div>
       <button id="startButton" type="button">START</button>
+      <div id="resultActions" class="resultActions hidden">
+        <button id="resultContinueButton" type="button">CONTINUE</button>
+        <button id="resultRestartButton" class="secondary" type="button">はじめからやりなおす</button>
+      </div>
     </div>
   </div>
 
@@ -1653,6 +1921,7 @@
       LASER: "LASER",
       WIDE: "WIDE",
       PLASMA: "PLASMA",
+      DRONE: "DRONE",
       NUMBER9: "NUMBER 9"
     };
 
@@ -1663,6 +1932,7 @@
       LASER: { label: "LASER", ammo: 90, fireCooldown: 0.055, bulletSpeed: 0, bulletScale: 1, color: 0xa9f8ff, sound: "laser" },
       WIDE: { label: "WIDE", ammo: 70, fireCooldown: 0.075, bulletSpeed: 325, bulletScale: 1, color: 0x9ee8ff, spreadAngle: Math.PI / 18, sound: "vulcan" },
       PLASMA: { label: "PLASMA", ammo: 25, fireCooldown: 0.22, bulletSpeed: 250, bulletScale: 2.6, color: 0x83a7ff, radius: 15, damage: 10, splashDamage: 4, sound: "plasma" },
+      DRONE: { label: "DRONE", ammo: Infinity, fireCooldown: 0.18, bulletSpeed: 360, bulletScale: 0.78, color: 0x6df7ff, damage: 0.3, specialDuration: 12, sound: "drone" },
       "NUMBER 9": { label: "NUMBER 9", ammo: Infinity, fireCooldown: 0.92, specialDuration: 18, bulletSpeed: 245, bulletScale: 1.45, color: 0xff263f, damage: 3, count: 16, launchInterval: 0.075, sound: "number9" }
     };
 
@@ -1671,6 +1941,60 @@
       RAPTOR: "RAPTOR",
       BUSTER: "BUSTER",
       PHANTOM: "PHANTOM"
+    };
+
+    const DIFFICULTY_TYPES = {
+      EASY: "EASY",
+      NORMAL: "NORMAL",
+      HARD: "HARD"
+    };
+
+    const DIFFICULTY_SETTINGS = {
+      EASY: {
+        label: "EASY",
+        enemyCountMultiplier: 1.0,
+        enemyHpMultiplier: 1.0,
+        heavyEnemyHpMultiplier: 1.0,
+        heavyChanceBonus: 0,
+        enemyFireIntervalMultiplier: 1.0,
+        enemyBulletSpeedMultiplier: 1.0,
+        bossHpMultiplier: 1.0,
+        bossShieldMultiplier: 1.0,
+        bossTurretHpMultiplier: 1.0,
+        bossAttackIntervalMultiplier: 1.0,
+        bossBulletSpeedMultiplier: 1.0,
+        bossChargeCooldownMultiplier: 1.0
+      },
+      NORMAL: {
+        label: "NORMAL",
+        enemyCountMultiplier: 1.12,
+        enemyHpMultiplier: 1.14,
+        heavyEnemyHpMultiplier: 1.18,
+        heavyChanceBonus: 0.04,
+        enemyFireIntervalMultiplier: 1.0,
+        enemyBulletSpeedMultiplier: 1.22,
+        bossHpMultiplier: 1.16,
+        bossShieldMultiplier: 1.12,
+        bossTurretHpMultiplier: 1.14,
+        bossAttackIntervalMultiplier: 1.0,
+        bossBulletSpeedMultiplier: 1.22,
+        bossChargeCooldownMultiplier: 1.0
+      },
+      HARD: {
+        label: "HARD",
+        enemyCountMultiplier: 1.28,
+        enemyHpMultiplier: 1.32,
+        heavyEnemyHpMultiplier: 1.42,
+        heavyChanceBonus: 0.09,
+        enemyFireIntervalMultiplier: 1.0,
+        enemyBulletSpeedMultiplier: 1.42,
+        bossHpMultiplier: 1.35,
+        bossShieldMultiplier: 1.28,
+        bossTurretHpMultiplier: 1.32,
+        bossAttackIntervalMultiplier: 1.0,
+        bossBulletSpeedMultiplier: 1.42,
+        bossChargeCooldownMultiplier: 1.0
+      }
     };
 
     const FIGHTER_DATA = {
@@ -1725,15 +2049,14 @@
       { type: WEAPON_TYPES.WIDE, weight: 22 },
       { type: WEAPON_TYPES.LASER, weight: 18 },
       { type: WEAPON_TYPES.PLASMA, weight: 18 },
+      { type: WEAPON_TYPES.DRONE, weight: 16 },
       { type: WEAPON_TYPES.NUMBER9, weight: 12 }
     ];
 
     function getStageEnemyCount(stageNumber) {
       if (STAGE_FLOW_TEST_MODE) return 3;
-      if (stageNumber === 1) return 100;
-      if (stageNumber === 2) return 150;
-      if (stageNumber === 3) return 300;
-      return 100;
+      const baseCount = stageNumber === 1 ? 100 : stageNumber === 2 ? 150 : stageNumber === 3 ? 300 : 100;
+      return Math.max(1, Math.round(baseCount * getDifficultySettings().enemyCountMultiplier));
     }
 
     function stageTestLog(message) {
@@ -1762,6 +2085,7 @@
       hp: document.getElementById("hpValue"),
       wave: document.getElementById("waveValue"),
       score: document.getElementById("scoreValue"),
+      continues: document.getElementById("continueValue"),
       weapon: document.getElementById("weaponBadge"),
       status: document.getElementById("statusBadge"),
       pauseButton: document.getElementById("pauseButton"),
@@ -1804,8 +2128,13 @@
       resultCombo: document.getElementById("resultComboValue"),
       resultBossBonus: document.getElementById("resultBossBonusValue"),
       startButton: document.getElementById("startButton"),
+      resultActions: document.getElementById("resultActions"),
+      resultContinueButton: document.getElementById("resultContinueButton"),
+      resultRestartButton: document.getElementById("resultRestartButton"),
       fighterGrid: document.getElementById("fighterGrid"),
       fighterCards: Array.from(document.querySelectorAll(".fighterCard")),
+      difficultyGrid: document.getElementById("difficultyGrid"),
+      difficultyCards: Array.from(document.querySelectorAll(".difficultyCard")),
       root: document.getElementById("hud"),
       damageFlash: document.getElementById("damageFlash"),
       bossWhiteFlash: document.getElementById("bossWhiteFlash")
@@ -1845,6 +2174,8 @@
       fighterType: FIGHTER_TYPES.FANG,
       fighterData: FIGHTER_DATA[FIGHTER_TYPES.FANG],
       maxHp: 100,
+      maxContinues: 2,
+      continues: 2,
       baseMoveInputX: 0.22,
       baseMoveInputY: 0.18,
       muzzleLeft: FIGHTER_DATA[FIGHTER_TYPES.FANG].muzzleLeft.clone(),
@@ -1900,6 +2231,10 @@
       numberNineReloadTimer: 0,
       numberNineReloadDuration: 5,
       numberNineLocks: [],
+      drones: [],
+      droneWeaponTimer: 0,
+      droneWeaponDuration: 12,
+      droneHudFlash: 0,
       aimScreen: { x: window.innerWidth / 2, y: window.innerHeight * 0.55 },
       kills: 0,
       score: 0,
@@ -2512,6 +2847,7 @@
     const lanes = [-42, -14, 14, 42];
     let paused = false;
     let selectedFighterType = loadStoredFighterType();
+    let selectedDifficultyType = loadStoredDifficultyType();
     const audio = {
       context: null,
       master: null,
@@ -2553,6 +2889,7 @@ let hitStopScale = 0.16;
     initLights();
     initWorld();
     applySelectedFighter(selectedFighterType, false);
+    updateDifficultySelectionCards();
     initPlayer();
     initInput();
     initFighterPreviews();
@@ -2654,6 +2991,74 @@ let hitStopScale = 0.16;
       }
     }
 
+    function loadStoredDifficultyType() {
+      try {
+        const stored = localStorage.getItem("spaceFangSelectedDifficulty");
+        return DIFFICULTY_SETTINGS[stored] ? stored : DIFFICULTY_TYPES.NORMAL;
+      } catch (error) {
+        return DIFFICULTY_TYPES.NORMAL;
+      }
+    }
+
+    function saveSelectedDifficultyType(type) {
+      try {
+        localStorage.setItem("spaceFangSelectedDifficulty", type);
+      } catch (error) {
+        // localStorageが使えない環境でも難易度選択は通常どおり動く。
+      }
+    }
+
+    function getDifficultySettings(type = selectedDifficultyType) {
+      return DIFFICULTY_SETTINGS[type] || DIFFICULTY_SETTINGS[DIFFICULTY_TYPES.NORMAL];
+    }
+
+    function scaleByDifficulty(baseValue, multiplier) {
+      return Math.max(1, Math.round(baseValue * multiplier));
+    }
+
+    function scaleEnemyHpByDifficulty(baseValue, multiplier) {
+      return Math.max(1, Math.ceil(baseValue * multiplier));
+    }
+
+    function getDifficultyAttackInterval(baseInterval) {
+      return Math.max(0.18, baseInterval * getDifficultySettings().enemyFireIntervalMultiplier);
+    }
+
+    function getBossDifficultyAttackInterval(baseInterval) {
+      return Math.max(0.25, baseInterval * getDifficultySettings().bossAttackIntervalMultiplier);
+    }
+
+    function getBossDifficultyChargeCooldown(baseCooldown) {
+      return Math.max(2.2, baseCooldown * getDifficultySettings().bossChargeCooldownMultiplier);
+    }
+
+    function getBossBaseCoreHp(targetBoss) {
+      return targetBoss.kind === "mothership" ? 180 : 80;
+    }
+
+    function getBossBaseShieldHp(targetBoss) {
+      return targetBoss.kind === "mothership" ? 140 : 60;
+    }
+
+    function applyDifficultyToBossStats(targetBoss) {
+      const difficulty = getDifficultySettings();
+      targetBoss.baseCoreMaxHp = getBossBaseCoreHp(targetBoss);
+      targetBoss.baseShieldMaxHp = getBossBaseShieldHp(targetBoss);
+      targetBoss.coreMaxHp = scaleByDifficulty(targetBoss.baseCoreMaxHp, difficulty.bossHpMultiplier);
+      targetBoss.coreHp = targetBoss.coreMaxHp;
+      targetBoss.shieldMaxHp = scaleByDifficulty(targetBoss.baseShieldMaxHp, difficulty.bossShieldMultiplier);
+      targetBoss.shieldHp = targetBoss.shieldMaxHp;
+
+      const scaleBossPartHp = (part) => {
+        const baseHp = part.baseMaxHp || part.maxHp || part.hp || 1;
+        part.baseMaxHp = baseHp;
+        part.maxHp = scaleByDifficulty(baseHp, difficulty.bossTurretHpMultiplier);
+        part.hp = part.maxHp;
+      };
+      targetBoss.turrets.forEach(scaleBossPartHp);
+      targetBoss.shieldGenerators.forEach(scaleBossPartHp);
+    }
+
     function getFighterData() {
       return FIGHTER_DATA[player.fighterType] || FIGHTER_DATA[FIGHTER_TYPES.FANG];
     }
@@ -2697,6 +3102,19 @@ let hitStopScale = 0.16;
         const data = FIGHTER_DATA[type];
         card.classList.toggle("selected", type === selectedFighterType);
         if (data) card.style.setProperty("--fighter-accent", `#${data.accentColor.toString(16).padStart(6, "0")}`);
+      });
+    }
+
+    function applySelectedDifficulty(type = selectedDifficultyType, persist = true) {
+      selectedDifficultyType = DIFFICULTY_SETTINGS[type] ? type : DIFFICULTY_TYPES.NORMAL;
+      if (persist) saveSelectedDifficultyType(selectedDifficultyType);
+      updateDifficultySelectionCards();
+    }
+
+    function updateDifficultySelectionCards() {
+      if (!hud.difficultyCards) return;
+      hud.difficultyCards.forEach((card) => {
+        card.classList.toggle("selected", card.dataset.difficulty === selectedDifficultyType);
       });
     }
 
@@ -4073,8 +4491,41 @@ let hitStopScale = 0.16;
       return new Intl.NumberFormat("en-US").format(Math.round(value || 0));
     }
 
+    const OVERLAY_MODES = {
+      DIFFICULTY: "mode-difficulty",
+      FIGHTER: "mode-fighter",
+      RESULT: "result-active"
+    };
+
+    function setOverlayMode(mode) {
+      hud.overlayBox?.classList.remove(
+        OVERLAY_MODES.DIFFICULTY,
+        OVERLAY_MODES.FIGHTER,
+        OVERLAY_MODES.RESULT,
+        "result-clear",
+        "result-failed"
+      );
+      if (mode) hud.overlayBox?.classList.add(mode);
+      hud.root?.classList.toggle("overlay-difficulty", mode === OVERLAY_MODES.DIFFICULTY);
+    }
+
+    function showDifficultyOverlay() {
+      resetResultPanel();
+      setOverlayMode(OVERLAY_MODES.DIFFICULTY);
+      hud.overlay.classList.remove("hidden");
+    }
+
+    function showFighterOverlay() {
+      resetResultPanel();
+      setOverlayMode(OVERLAY_MODES.FIGHTER);
+      hud.startButton.textContent = "START";
+      updateFighterSelectionCards();
+      updateDifficultySelectionCards();
+      hud.overlay.classList.remove("hidden");
+    }
+
     function resetResultPanel() {
-      hud.overlayBox?.classList.remove("result-active");
+      hud.overlayBox?.classList.remove("result-active", "result-clear", "result-failed");
       hud.result.className = "resultPanel hidden";
       hud.resultTitle.textContent = "";
       hud.resultStage.textContent = "";
@@ -4082,10 +4533,12 @@ let hitStopScale = 0.16;
       hud.resultScore.textContent = "";
       hud.resultCombo.textContent = "";
       hud.resultBossBonus.textContent = "";
+      hud.resultActions?.classList.add("hidden");
     }
 
     function showResultPanel(cleared, totalBossBonus) {
-      hud.overlayBox?.classList.add("result-active");
+      setOverlayMode(OVERLAY_MODES.RESULT);
+      hud.overlayBox?.classList.add(cleared ? "result-clear" : "result-failed");
       hud.result.className = `resultPanel ${cleared ? "cleared" : "failed"}`;
       hud.resultTitle.textContent = cleared ? "ALL STAGES CLEAR" : "MISSION FAILED";
       hud.resultStage.textContent = `${stage.current} / ${stage.maxStage}`;
@@ -4093,6 +4546,14 @@ let hitStopScale = 0.16;
       hud.resultScore.textContent = formatResultNumber(player.score);
       hud.resultCombo.textContent = formatResultNumber(player.comboPeak);
       hud.resultBossBonus.textContent = formatResultNumber(totalBossBonus);
+      hud.resultActions?.classList.remove("hidden");
+      if (cleared) {
+        hud.resultContinueButton.classList.add("hidden");
+      } else {
+        hud.resultContinueButton.classList.remove("hidden");
+        hud.resultContinueButton.disabled = player.continues <= 0;
+        hud.resultContinueButton.textContent = player.continues > 0 ? `CONTINUE ×${player.continues}` : "NO CONTINUE";
+      }
     }
 
     function collectDamageMaterials(root) {
@@ -4209,8 +4670,18 @@ let hitStopScale = 0.16;
         });
       });
       updateFighterSelectionCards();
+      hud.difficultyCards.forEach((card) => {
+        card.addEventListener("pointerdown", (event) => event.stopPropagation());
+        card.addEventListener("click", () => {
+          if (running) return;
+          applySelectedDifficulty(card.dataset.difficulty, true);
+          showFighterOverlay();
+          renderHUD();
+        });
+      });
+      updateDifficultySelectionCards();
       hud.overlay.addEventListener("pointerdown", (event) => {
-        if (event.target === hud.overlay) startGame(event);
+        if (event.target === hud.overlay) event.preventDefault();
       });
 
       hud.missile.addEventListener("pointerdown", (event) => {
@@ -4222,6 +4693,8 @@ let hitStopScale = 0.16;
       hud.pauseButton.addEventListener("click", pauseGame);
       hud.continueButton.addEventListener("click", resumeGame);
       hud.restartButton.addEventListener("click", restartFromBeginning);
+      hud.resultContinueButton.addEventListener("click", continueCurrentRun);
+      hud.resultRestartButton.addEventListener("click", restartFromBeginning);
 
       window.addEventListener("resize", onResize);
       window.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -4283,6 +4756,7 @@ let hitStopScale = 0.16;
 
     function startGame(event) {
       if (event) event.preventDefault();
+      if (!hud.overlayBox?.classList.contains(OVERLAY_MODES.FIGHTER)) return;
       initAudio();
       paused = false;
       hud.pauseMenu.classList.add("hidden");
@@ -4307,8 +4781,10 @@ let hitStopScale = 0.16;
       clearObjects(effects);
       resetBossState();
       resetRunProgress();
+      applySelectedDifficulty(selectedDifficultyType, true);
       applySelectedFighter(selectedFighterType, true);
       initPlayer();
+      player.continues = player.maxContinues;
 
       player.position.set(0, 58, 0);
       player.target.copy(player.position);
@@ -4353,6 +4829,7 @@ let hitStopScale = 0.16;
       player.specialWeaponHudFlash = 0;
       player.numberNineReloadTimer = 0;
       player.numberNineLocks = [];
+      deactivateDrones(false);
       hideNumberNineLockIndicators();
       hud.numberNineReload.className = "";
       hud.numberNineReloadBar.style.width = "0%";
@@ -4451,6 +4928,38 @@ let hitStopScale = 0.16;
       if (audio.jetGain && audio.context) audio.jetGain.gain.setTargetAtTime(0.12, audio.context.currentTime, 0.18);
     }
 
+    function continueCurrentRun() {
+      if (stage.clear || player.state !== "GAME OVER" || player.continues <= 0) return;
+      initAudio();
+      player.continues = Math.max(0, player.continues - 1);
+      resetResultPanel();
+      hud.overlay.classList.add("hidden");
+      paused = false;
+      running = true;
+      player.state = "FIGHT";
+      player.hp = player.maxHp;
+      player.invincibleTimer = Math.max(player.invincibleTimer, 2.2);
+      player.damageBlinkTimer = 0;
+      player.damageFlashTimer = 0;
+      player.zoomTimer = 0;
+      player.shakeTimer = 0;
+      player.engineDisruptionTimer = 0;
+      player.combo = 0;
+      player.comboTimer = 0;
+      player.comboMultiplier = 1;
+      player.comboTitleTimer = 0;
+      player.fireHeld = false;
+      dragging = false;
+      clearObjects(enemyBullets);
+      hud.combo.classList.remove("visible");
+      hud.damageFlash.style.opacity = "0";
+      hud.root.style.transform = "translate3d(0, 0, 0)";
+      resetPlayerDamageMaterials();
+      startBgm();
+      startJetSound();
+      renderHUD();
+    }
+
     function restartFromBeginning() {
       paused = false;
       hud.pauseMenu.classList.add("hidden");
@@ -4462,10 +4971,9 @@ let hitStopScale = 0.16;
       running = false;
       player.state = "READY";
       stage.clear = false;
-      resetResultPanel();
-      hud.startButton.textContent = "START";
+      showDifficultyOverlay();
       updateFighterSelectionCards();
-      hud.overlay.classList.remove("hidden");
+      updateDifficultySelectionCards();
     }
 
     function resetBossState() {
@@ -4481,10 +4989,12 @@ let hitStopScale = 0.16;
         boss.homeX = 0;
         boss.homeZ = -180;
         boss.core = null;
-        boss.coreMaxHp = boss.kind === "mothership" ? 180 : 80;
+        boss.baseCoreMaxHp = getBossBaseCoreHp(boss);
+        boss.coreMaxHp = scaleByDifficulty(boss.baseCoreMaxHp, getDifficultySettings().bossHpMultiplier);
         boss.coreHp = boss.coreMaxHp;
         boss.shieldMesh = null;
-        boss.shieldMaxHp = boss.kind === "mothership" ? 140 : 60;
+        boss.baseShieldMaxHp = getBossBaseShieldHp(boss);
+        boss.shieldMaxHp = scaleByDifficulty(boss.baseShieldMaxHp, getDifficultySettings().bossShieldMultiplier);
         boss.shieldHp = boss.shieldMaxHp;
         boss.shieldBroken = false;
         boss.shieldRechargeTimer = 0;
@@ -4510,7 +5020,7 @@ let hitStopScale = 0.16;
         boss.message = "";
         boss.chargeState = "idle";
         boss.chargeTimer = 0;
-        boss.chargeCooldown = 4.5;
+        boss.chargeCooldown = getBossDifficultyChargeCooldown(4.5);
         boss.chargeHit = false;
         boss.defeatTimer = 0;
         boss.defeatExplosionTimer = 0;
@@ -4667,6 +5177,7 @@ let hitStopScale = 0.16;
       if (player.fireHeld) fireVulcan();
 
       updatePlayerTransform(dt);
+      updateDrones(dt);
       updateBullets(dt);
       updateMissiles(dt);
       updateWeaponContainers(dt);
@@ -5202,7 +5713,7 @@ let hitStopScale = 0.16;
       if (player.weaponRouletteTimer <= 0) return;
       player.weaponRouletteTimer = Math.max(0, player.weaponRouletteTimer - dt);
       player.weaponRouletteElapsed += dt;
-      const rouletteNames = [WEAPON_TYPES.LASER, WEAPON_TYPES.WIDE, WEAPON_TYPES.RAPID, WEAPON_TYPES.PLASMA, WEAPON_TYPES.NUMBER9];
+      const rouletteNames = [WEAPON_TYPES.LASER, WEAPON_TYPES.WIDE, WEAPON_TYPES.RAPID, WEAPON_TYPES.PLASMA, WEAPON_TYPES.DRONE, WEAPON_TYPES.NUMBER9];
       const index = Math.floor(player.weaponRouletteElapsed * 18) % rouletteNames.length;
       hud.centerAlert.innerHTML = rouletteNames[index];
       hud.centerAlert.className = "visible info";
@@ -5216,6 +5727,10 @@ let hitStopScale = 0.16;
     function applyMainWeapon(type) {
       if (type === WEAPON_TYPES.NUMBER9) {
         activateSpecialWeapon(type);
+        return;
+      }
+      if (type === WEAPON_TYPES.DRONE) {
+        activateDroneWeapon();
         return;
       }
       const data = WEAPON_DATA[type] || WEAPON_DATA.VULCAN;
@@ -5250,6 +5765,277 @@ let hitStopScale = 0.16;
         hud.numberNineReload.className = "";
         hud.numberNineReloadBar.style.width = "0%";
         showCenterMessage("MISSILE RESTORED", "info", 0.8);
+      }
+    }
+
+    function activateDroneWeapon() {
+      const data = WEAPON_DATA[WEAPON_TYPES.DRONE];
+      player.droneWeaponDuration = data.specialDuration || 12;
+      player.droneWeaponTimer = player.droneWeaponDuration;
+      player.droneHudFlash = 1.2;
+      if (player.drones.length === 0) {
+        player.drones = [-1, 1].map((side) => createSupportDrone(side));
+      }
+      player.drones.forEach((drone, index) => {
+        drone.visible = true;
+        drone.userData.cooldown = index * (data.fireCooldown * 0.5);
+        drone.userData.flash = 0;
+      });
+      showCenterMessage(`SUPPORT WEAPON<br>${data.label}`, "info", 1.15);
+      playWeaponAcquireSound();
+    }
+
+    function deactivateDrones(withParticles = true) {
+      if (player.drones?.length) {
+        player.drones.forEach((drone) => {
+          if (withParticles) spawnDroneDisappearEffect(drone.position.clone());
+          world.remove(drone);
+        });
+      }
+      player.drones = [];
+      player.droneWeaponTimer = 0;
+      player.droneHudFlash = 0;
+    }
+
+    function createSupportDrone(side) {
+      const drone = new THREE.Group();
+      const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0x101822,
+        emissive: 0x061923,
+        emissiveIntensity: 0.38,
+        roughness: 0.42,
+        metalness: 0.52
+      });
+      const panelMaterial = new THREE.MeshStandardMaterial({
+        color: 0x253342,
+        emissive: 0x07131b,
+        emissiveIntensity: 0.18,
+        roughness: 0.48,
+        metalness: 0.38,
+        side: THREE.DoubleSide
+      });
+      const accentMaterial = new THREE.MeshBasicMaterial({
+        color: 0x6df7ff,
+        transparent: true,
+        opacity: 0.82,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      const wingShape = new THREE.Shape([
+        new THREE.Vector2(0, 4.2),
+        new THREE.Vector2(-4.9, 0.15),
+        new THREE.Vector2(-2.7, -0.75),
+        new THREE.Vector2(-1.05, -0.28),
+        new THREE.Vector2(-0.48, -2.35),
+        new THREE.Vector2(0, -1.35),
+        new THREE.Vector2(0.48, -2.35),
+        new THREE.Vector2(1.05, -0.28),
+        new THREE.Vector2(2.7, -0.75),
+        new THREE.Vector2(4.9, 0.15)
+      ]);
+      const wingGeometry = new THREE.ShapeGeometry(wingShape);
+      wingGeometry.rotateX(-Math.PI / 2);
+      const wing = new THREE.Mesh(wingGeometry, panelMaterial);
+      wing.position.y = -0.08;
+      wing.scale.z = -1;
+      drone.add(wing);
+
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.78, 4.2, 4, 10), bodyMaterial);
+      body.rotation.x = Math.PI / 2;
+      body.scale.set(1.08, 0.72, 1.45);
+      body.position.set(0, 0.08, -0.62);
+      drone.add(body);
+
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.58, 3.35, 10), bodyMaterial.clone());
+      nose.rotation.x = -Math.PI / 2;
+      nose.scale.set(0.72, 0.72, 1.25);
+      nose.position.set(0, 0.08, -3.55);
+      drone.add(nose);
+
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.24, 3.4), bodyMaterial.clone());
+      spine.position.set(0, 0.42, -0.4);
+      drone.add(spine);
+
+      const tailGeometry = new THREE.BoxGeometry(0.32, 1.45, 1.55);
+      [-1, 1].forEach((tailSide) => {
+        const tail = new THREE.Mesh(tailGeometry, bodyMaterial.clone());
+        tail.position.set(tailSide * 1.6, 0.78, 1.7);
+        tail.rotation.z = tailSide * -0.38;
+        tail.rotation.y = tailSide * 0.14;
+        drone.add(tail);
+      });
+
+      const canardGeometry = new THREE.BoxGeometry(1.85, 0.12, 0.34);
+      [-1, 1].forEach((finSide) => {
+        const canard = new THREE.Mesh(canardGeometry, panelMaterial.clone());
+        canard.position.set(finSide * 1.15, 0.05, -2.55);
+        canard.rotation.y = finSide * 0.32;
+        drone.add(canard);
+      });
+
+      const orangeAccent = new THREE.Mesh(
+        new THREE.BoxGeometry(0.38, 0.08, 0.92),
+        new THREE.MeshBasicMaterial({ color: 0xff6a2a })
+      );
+      orangeAccent.position.set(-0.34, 0.55, -1.2);
+      orangeAccent.rotation.y = -0.2;
+      drone.add(orangeAccent);
+
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), accentMaterial);
+      eye.position.set(0, 0.18, -4.95);
+      eye.scale.set(1.35, 0.45, 0.7);
+      drone.add(eye);
+
+      [-1, 1].forEach((engineSide) => {
+        const engine = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), accentMaterial.clone());
+        engine.position.set(engineSide * 0.82, 0.08, 2.35);
+        engine.scale.set(0.8, 0.58, 1.35);
+        drone.add(engine);
+      });
+
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(2.1, 16, 10), accentMaterial.clone());
+      glow.material.opacity = 0.13;
+      glow.scale.set(1.4, 0.38, 1.08);
+      drone.add(glow);
+
+      drone.userData = {
+        side,
+        offset: new THREE.Vector3(side * 14, 8, 6),
+        cooldown: 0,
+        flash: 0,
+        bodyMaterial,
+        accentMaterial,
+        glow,
+        phase: Math.random() * Math.PI * 2
+      };
+      drone.position.copy(player.position).add(drone.userData.offset);
+      world.add(drone);
+      return drone;
+    }
+
+    function updateDrones(dt) {
+      if (player.droneWeaponTimer <= 0) return;
+      player.droneWeaponTimer = Math.max(0, player.droneWeaponTimer - dt);
+      player.droneHudFlash = Math.max(0, player.droneHudFlash - dt);
+      if (player.droneWeaponTimer <= 0) {
+        deactivateDrones(true);
+        return;
+      }
+
+      const data = WEAPON_DATA[WEAPON_TYPES.DRONE];
+      const targets = findDroneTargets(player.drones.length);
+      player.drones.forEach((drone, index) => {
+        const bob = Math.sin(performance.now() * 0.0035 + drone.userData.phase) * 0.9;
+        const desired = player.position.clone().add(drone.userData.offset).add(new THREE.Vector3(0, bob, 0));
+        drone.position.lerp(desired, 1 - Math.exp(-dt * 6.2));
+        drone.userData.cooldown = Math.max(0, drone.userData.cooldown - dt);
+        drone.userData.flash = Math.max(0, drone.userData.flash - dt);
+
+        const target = targets[index] || targets[0];
+        if (target && isMissileTargetAlive(target)) {
+          const targetPosition = getTargetWorldPosition(target);
+          drone.lookAt(targetPosition);
+          if (drone.userData.cooldown <= 0) {
+            spawnDroneBullet(drone, target);
+            drone.userData.cooldown = data.fireCooldown;
+          }
+        } else {
+          drone.lookAt(drone.position.x, drone.position.y, drone.position.z - 28);
+        }
+
+        const warningPulse = player.droneWeaponTimer < 3
+          ? 0.55 + Math.sin(performance.now() * 0.018) * 0.35
+          : 1;
+        const flashBoost = drone.userData.flash > 0 ? 1.7 : 1;
+        drone.userData.bodyMaterial.emissiveIntensity = 0.38 * warningPulse * flashBoost;
+        drone.userData.glow.material.opacity = THREE.MathUtils.clamp(0.12 * warningPulse * flashBoost, 0.08, 0.38);
+        const glowScale = 1.0 + (flashBoost - 1) * 0.35;
+        drone.userData.glow.scale.set(1.4 * glowScale, 0.38 * glowScale, 1.08 * glowScale);
+      });
+    }
+
+    function findDroneTargets(maxTargets = 2) {
+      const bossTargets = getBossLockTargets().map((target) => ({ target, priority: 0 }));
+      const enemyTargets = enemies
+        .filter((enemy) => !enemy.destroyed && enemy.hp > 0)
+        .map((enemy) => ({ target: { kind: "enemy", enemy, object: enemy.group }, priority: 1 }));
+      return bossTargets.concat(enemyTargets)
+        .map((item) => {
+          const pos = getTargetWorldPosition(item.target);
+          const screen = worldToScreen(pos);
+          const worldDistance = player.position.distanceTo(pos);
+          const centerBias = Math.abs(screen.x - window.innerWidth * 0.5) + Math.abs(screen.y - window.innerHeight * 0.5) * 0.35;
+          return { ...item, screen, worldDistance, centerBias };
+        })
+        .filter((item) =>
+          item.screen.z >= -1 &&
+          item.screen.z <= 1 &&
+          item.screen.x >= -80 &&
+          item.screen.x <= window.innerWidth + 80 &&
+          item.screen.y >= -80 &&
+          item.screen.y <= window.innerHeight + 80 &&
+          item.worldDistance <= 760
+        )
+        .sort((a, b) =>
+          a.priority - b.priority ||
+          a.worldDistance - b.worldDistance ||
+          a.centerBias - b.centerBias
+        )
+        .slice(0, maxTargets)
+        .map((item) => item.target);
+    }
+
+    function spawnDroneBullet(drone, target) {
+      const data = WEAPON_DATA[WEAPON_TYPES.DRONE];
+      const bullet = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.18 * data.bulletScale, 3.7 * data.bulletScale, 4, 8),
+        new THREE.MeshBasicMaterial({
+          color: data.color,
+          transparent: true,
+          opacity: 0.96,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      bullet.position.copy(drone.position).add(new THREE.Vector3(0, -0.1, -5.15));
+      const targetPosition = getTargetWorldPosition(target);
+      const direction = targetPosition.sub(bullet.position).normalize();
+      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+      bullet.velocity = direction.multiplyScalar(data.bulletSpeed);
+      bullet.userData.damage = data.damage;
+      bullet.userData.radius = 0;
+      bullet.userData.collisionRadius = 0.45;
+      bullet.userData.previousPosition = bullet.position.clone();
+      bullet.userData.weapon = WEAPON_TYPES.DRONE;
+      world.add(bullet);
+      bullets.push(bullet);
+      drone.userData.flash = 0.12;
+      playDroneShotSound();
+    }
+
+    function spawnDroneDisappearEffect(position) {
+      for (let i = 0; i < 16; i++) {
+        const particle = new THREE.Mesh(
+          new THREE.SphereGeometry(0.45, 8, 6),
+          new THREE.MeshBasicMaterial({
+            color: 0x6df7ff,
+            transparent: true,
+            opacity: 0.72,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          })
+        );
+        particle.position.copy(position);
+        particle.velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 22,
+          (Math.random() - 0.15) * 18,
+          (Math.random() - 0.5) * 22
+        );
+        particle.life = 0.52 + Math.random() * 0.25;
+        particle.userData.effectType = "upgradeAcquireParticle";
+        world.add(particle);
+        effects.push(particle);
       }
     }
 
@@ -5694,6 +6480,23 @@ let hitStopScale = 0.16;
         osc.start(now + index * 0.055);
         osc.stop(now + index * 0.055 + 0.24);
       });
+    }
+
+    function playDroneShotSound() {
+      if (!audio.ready || !audio.context) return;
+      const now = audio.context.currentTime;
+      const gain = audio.context.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.035, now + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+      gain.connect(audio.master);
+      const osc = audio.context.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(1180 + Math.random() * 120, now);
+      osc.frequency.exponentialRampToValueAtTime(820, now + 0.07);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.08);
     }
 
     function playUpgradeAcquireSound(rarity) {
@@ -6666,10 +7469,7 @@ let hitStopScale = 0.16;
         boss.detachTimer = boss.docked ? 0.12 : 0;
         boss.escortLaunchAnnounced = false;
         boss.standby = !!options.standby;
-        boss.coreMaxHp = boss.kind === "mothership" ? 180 : 80;
-        boss.shieldMaxHp = boss.kind === "mothership" ? 140 : 60;
-        boss.coreHp = boss.coreMaxHp;
-        boss.shieldHp = boss.shieldMaxHp;
+        applyDifficultyToBossStats(boss);
         boss.shieldBroken = false;
         boss.shieldRechargeTimer = 0;
         boss.shieldRechargeProgress = 0;
@@ -6678,9 +7478,13 @@ let hitStopScale = 0.16;
         boss.shieldBreakCount = 0;
         boss.rechargeInterrupted = 0;
         boss.phase = 1;
-        boss.attackTimer = options.attackTimer ?? (boss.docked ? 2.2 : 1.4);
+        boss.attackTimer = getBossDifficultyAttackInterval(options.attackTimer ?? (boss.docked ? 2.2 : 1.4));
         boss.attackCount = 0;
         boss.movementTime = 0;
+        boss.chargeState = "idle";
+        boss.chargeTimer = 0;
+        boss.chargeCooldown = getBossDifficultyChargeCooldown(4.5);
+        boss.chargeHit = false;
         boss.defeatTimer = 0;
         boss.defeatExplosionTimer = 0;
         boss.defeatExplosions = 0;
@@ -7125,7 +7929,7 @@ let hitStopScale = 0.16;
         boss.standby = false;
         boss.intro = true;
         boss.homeZ = -260;
-        boss.attackTimer = 1.1;
+        boss.attackTimer = getBossDifficultyAttackInterval(1.1);
         boss.movementTime = 0;
         showCenterMessage("MOTHERSHIP ADVANCING<br>SHIELD GENERATORS ONLINE", "warning", 1.8);
         playWarningSound();
@@ -7190,7 +7994,7 @@ let hitStopScale = 0.16;
         boss.docked = false;
         boss.intro = false;
         boss.movementTime = Math.random() * Math.PI * 2;
-        boss.attackTimer = 0.45 + Math.random() * 0.25;
+        boss.attackTimer = getBossDifficultyAttackInterval(0.45 + Math.random() * 0.25);
         boss.group.position.x += Math.sign(boss.dockOffsetX || boss.homeX || 1) * 6;
         boss.group.position.z -= 10;
         if (!mother.escortLaunchAnnounced) {
@@ -7255,7 +8059,8 @@ let hitStopScale = 0.16;
     }
 
     function updateBossPhase() {
-      const nextPhase = boss.coreHp <= 25 ? 3 : boss.coreHp <= 55 ? 2 : 1;
+      const coreHpRatio = boss.coreHp / Math.max(1, boss.coreMaxHp);
+      const nextPhase = coreHpRatio <= 0.3125 ? 3 : coreHpRatio <= 0.6875 ? 2 : 1;
       if (nextPhase !== boss.phase) {
         boss.phase = nextPhase;
         stage.bossPhase = nextPhase;
@@ -7292,7 +8097,7 @@ let hitStopScale = 0.16;
       if (boss.phase === 3 && boss.chargeCooldown <= 0 && boss.chargeState === "idle") {
         boss.chargeState = "windup";
         boss.chargeTimer = 0.85;
-        boss.chargeCooldown = 6.2;
+        boss.chargeCooldown = getBossDifficultyChargeCooldown(6.2);
         showCenterMessage("CHARGE ATTACK", "warning", 1.0);
         playWarningSound();
         return;
@@ -7301,7 +8106,7 @@ let hitStopScale = 0.16;
 
       const aliveTurrets = boss.turrets.filter((turret) => turret.alive);
       if (aliveTurrets.length === 0) {
-        boss.attackTimer = 1.2;
+        boss.attackTimer = getBossDifficultyAttackInterval(1.2);
         return;
       }
       const turret = aliveTurrets[Math.floor(boss.movementTime * 2) % aliveTurrets.length];
@@ -7312,7 +8117,7 @@ let hitStopScale = 0.16;
       } else {
         fireBossDirectBullet(turret);
       }
-      boss.attackTimer = 1.25 + Math.random() * 0.7;
+      boss.attackTimer = getBossDifficultyAttackInterval(1.25 + Math.random() * 0.7);
     }
 
     function updateBossCharge(dt) {
@@ -7391,7 +8196,7 @@ let hitStopScale = 0.16;
         new THREE.MeshBasicMaterial({ color: 0xff4f5d })
       );
       bullet.position.copy(origin);
-      bullet.velocity = direction.multiplyScalar(105);
+      bullet.velocity = direction.multiplyScalar(105 * getDifficultySettings().bossBulletSpeedMultiplier);
       bullet.userData.bossBullet = true;
       world.add(bullet);
       enemyBullets.push(bullet);
@@ -7411,11 +8216,12 @@ let hitStopScale = 0.16;
       );
       bullet.position.copy(origin);
       const direction = player.position.clone().sub(origin).normalize();
-      bullet.velocity = direction.multiplyScalar(boss.phase === 1 ? 98 : boss.phase === 2 ? 112 : 128);
+      const bulletSpeed = (boss.phase === 1 ? 98 : boss.phase === 2 ? 112 : 128) * getDifficultySettings().bossBulletSpeedMultiplier;
+      bullet.velocity = direction.multiplyScalar(bulletSpeed);
       bullet.userData.bossBullet = true;
       bullet.userData.homing = true;
       bullet.userData.turnRate = boss.phase === 1 ? 1.45 : boss.phase === 2 ? 1.7 : 1.95;
-      bullet.userData.speed = boss.phase === 1 ? 98 : boss.phase === 2 ? 112 : 128;
+      bullet.userData.speed = bulletSpeed;
       bullet.userData.life = 5.2;
       bullet.userData.damage = boss.phase === 3 ? 18 : 15;
       bullet.userData.hitRadius = boss.phase === 3 ? 8.8 : 8.2;
@@ -7873,6 +8679,7 @@ let hitStopScale = 0.16;
     function spawnWave() {
       stage.wave += 1;
       const remaining = stage.totalEnemies - stage.spawnedEnemies;
+      const difficulty = getDifficultySettings();
       // ステージが進むほど一度に押し寄せる敵数を増やし、後半戦の圧を強める。
       const waveMin = stage.current >= 3 ? 25 : stage.current >= 2 ? 15 : 10;
       const waveMax = stage.current >= 3 ? 30 : stage.current >= 2 ? 25 : 15;
@@ -7893,7 +8700,7 @@ let hitStopScale = 0.16;
         const isOddRow = row % 2 === 1;
         const rowOffsetX = isOddRow ? spacingX * 0.5 : 0;
         const waveDrift = Math.sin(stage.wave * 0.9) * 8;
-        const heavyChance = stage.current >= 3 ? 0.34 : stage.current >= 2 ? 0.26 : 0.14;
+        const heavyChance = THREE.MathUtils.clamp((stage.current >= 3 ? 0.34 : stage.current >= 2 ? 0.26 : 0.14) + difficulty.heavyChanceBonus, 0, 0.72);
         const isHeavy = Math.random() < heavyChance;
         const enemy = createEnemy(isHeavy ? "heavy" : "normal");
         const slideFromSide = stage.current >= 3 && isHeavy && Math.random() < 0.65;
@@ -7911,7 +8718,7 @@ let hitStopScale = 0.16;
         }
         enemy.hp = enemy.bodyHp;
         enemy.stopZ = -135 - row * 10 - column * 2;
-        enemy.fireTimer = 1.0 + row * 0.22 + column * 0.11 + Math.random() * 0.45;
+        enemy.fireTimer = getDifficultyAttackInterval(1.0 + row * 0.22 + column * 0.11 + Math.random() * 0.45);
         enemy.score = enemy.variant === "heavy" ? 180 : 100;
         world.add(enemy.group);
         enemies.push(enemy);
@@ -7957,7 +8764,8 @@ let hitStopScale = 0.16;
       const engineMat = new THREE.MeshStandardMaterial({ color: 0x111927, emissive: isHeavy ? 0x7c2508 : 0x113954, roughness: 0.34, metalness: 0.36 });
       const holoLineMat = new THREE.MeshBasicMaterial({ color: isHeavy ? 0xff9a3a : 0x69f6ff, transparent: true, opacity: 0.76, blending: THREE.AdditiveBlending, depthWrite: false });
       const targetMat = new THREE.MeshBasicMaterial({ color: 0xfff15a, transparent: true, opacity: 0.86, blending: THREE.AdditiveBlending, depthWrite: false });
-      const partHp = (name) => isHeavy ? HEAVY_ENEMY_PART_HP[name] : ENEMY_PART_DATA[name].hp;
+      const hpMultiplier = getDifficultySettings().enemyHpMultiplier * (isHeavy ? getDifficultySettings().heavyEnemyHpMultiplier : 1);
+      const partHp = (name) => scaleEnemyHpByDifficulty(isHeavy ? HEAVY_ENEMY_PART_HP[name] : ENEMY_PART_DATA[name].hp, hpMultiplier);
 
       const bodyGroup = new THREE.Group();
       // 通常敵は大型無人ドローンらしく、丸い機体から面の立った装甲シルエットへ変更。
@@ -8830,7 +9638,7 @@ let hitStopScale = 0.16;
           enemy.fireTimer -= dt;
           if (enemy.fireTimer <= 0) {
             fireEnemyBullet(enemy);
-            enemy.fireTimer = (1.25 + Math.random() * 0.7) * fireFactor;
+            enemy.fireTimer = getDifficultyAttackInterval((1.25 + Math.random() * 0.7) * fireFactor);
           }
         }
 
@@ -8861,7 +9669,7 @@ let hitStopScale = 0.16;
       );
       bullet.position.copy(enemy.group.position);
       const direction = player.position.clone().sub(enemy.group.position).normalize();
-      bullet.velocity = direction.multiplyScalar(105);
+      bullet.velocity = direction.multiplyScalar(105 * getDifficultySettings().enemyBulletSpeedMultiplier);
       world.add(bullet);
       enemyBullets.push(bullet);
     }
@@ -8882,10 +9690,11 @@ let hitStopScale = 0.16;
         : enemy.group.position.clone();
       bullet.position.copy(muzzle);
       const direction = player.position.clone().sub(bullet.position).normalize();
-      bullet.velocity = direction.multiplyScalar(92);
+      const bulletSpeed = 92 * getDifficultySettings().enemyBulletSpeedMultiplier;
+      bullet.velocity = direction.multiplyScalar(bulletSpeed);
       bullet.userData.homing = true;
       bullet.userData.turnRate = 1.85;
-      bullet.userData.speed = 92;
+      bullet.userData.speed = bulletSpeed;
       bullet.userData.life = 4.5;
       bullet.userData.damage = 16;
       bullet.userData.hitRadius = 8.2;
@@ -9579,14 +10388,18 @@ let hitStopScale = 0.16;
       hud.hp.textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
       hud.wave.textContent = `${Math.max(1, stage.wave)}`;
       hud.score.textContent = `${player.score}`;
+      if (hud.continues) hud.continues.textContent = `×${Math.max(0, player.continues)}`;
       const weaponData = WEAPON_DATA[player.mainWeapon] || WEAPON_DATA.VULCAN;
       const ammoText = player.mainWeapon === WEAPON_TYPES.VULCAN ? "VULCAN" : `${weaponData.label}<br>${player.weaponAmmo}`;
-      hud.weapon.innerHTML = `FIGHTER ${getFighterData().label}<br>MAIN ${ammoText}`;
+      const droneText = player.droneWeaponTimer > 0 ? `<br>DRONE ${player.droneWeaponTimer.toFixed(0)}s` : "";
+      hud.weapon.innerHTML = `FIGHTER ${getFighterData().label}<br>MAIN ${ammoText}${droneText}`;
       let weaponClass = "badge";
       if (player.mainWeapon !== WEAPON_TYPES.VULCAN) {
         if (player.weaponAmmo <= 2) weaponClass += " danger";
         else if (player.weaponAmmo <= 5) weaponClass += " warn";
         else weaponClass += " active";
+      } else if (player.droneWeaponTimer > 0 || player.droneHudFlash > 0) {
+        weaponClass += " active";
       } else if (player.fireHeld || player.weaponHudFlash > 0) {
         weaponClass += " active";
       }
@@ -9719,6 +10532,7 @@ let hitStopScale = 0.16;
       player.specialWeaponHudFlash = 0;
       player.numberNineReloadTimer = 0;
       player.numberNineLocks = [];
+      deactivateDrones(false);
       hideNumberNineLockIndicators();
       hud.numberNineReload.className = "";
       hud.numberNineReloadBar.style.width = "0%";
