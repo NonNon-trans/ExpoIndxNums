@@ -1938,7 +1938,6 @@
       missileDamageMultiplier: 1,
       missileReloadMultiplier: 1,
       missileLockBonus: 0,
-      numberNineLockBonus: 0,
       missileExplosionMultiplier: 1,
       fighterUniqueDamageMultiplier: 1,
       fighterUniqueFireRateMultiplier: 1,
@@ -1950,11 +1949,8 @@
       fighterUniqueRollDistanceMultiplier: 1,
       fighterUniquePlasmaDamageMultiplier: 1,
       fighterUniquePlasmaRadiusMultiplier: 1,
-      fighterUniqueNumberNineDamageMultiplier: 1,
-      fighterUniqueNumberNineTurnMultiplier: 1,
       fighterUniqueLockTimeMultiplier: 1,
       fighterUniqueLockBonus: 0,
-      fighterUniqueNumberNineLockBonus: 0,
       fighterUniqueComboDamage10: 0,
       fighterUniqueComboDamage20: 0,
       fighterUniqueComboDamage30: 0,
@@ -2039,12 +2035,12 @@
       },
       MISSILE_POWER: {
         id: "MISSILE_POWER", name: "MISSILE POWER", category: "MISSILE", icon: ">", maxLevel: 5, weight: 9, baseValue: 0.12, valueType: "percent",
-        description: "ミサイル/NUMBER 9ダメージ",
+        description: "通常ミサイルダメージ",
         apply({ effectiveValue }) { runProgress.missileDamageMultiplier *= 1 + effectiveValue; }
       },
       FAST_RELOAD: {
         id: "FAST_RELOAD", name: "FAST RELOAD", category: "MISSILE", icon: ">", maxLevel: 4, weight: 8, baseValue: 0.10, valueType: "percent",
-        description: "ミサイル/NUMBER 9リロード短縮",
+        description: "通常ミサイル/NUMBER 9リロード短縮",
         apply({ effectiveValue }) {
           runProgress.missileReloadMultiplier = Math.max(0.42, runProgress.missileReloadMultiplier * (1 - Math.min(0.35, effectiveValue)));
           updateDerivedPlayerStats(false);
@@ -2052,10 +2048,9 @@
       },
       EXTRA_LOCK: {
         id: "EXTRA_LOCK", name: "EXTRA LOCK", category: "MISSILE", icon: ">", maxLevel: 4, weight: 8, baseValue: 1, valueType: "lock",
-        description: "ロック数追加",
+        description: "通常ミサイル最大ロック",
         apply({ effectiveValue }) {
           runProgress.missileLockBonus += effectiveValue.missile;
-          runProgress.numberNineLockBonus += effectiveValue.numberNine;
         }
       },
       BLAST_RADIUS: {
@@ -2142,7 +2137,7 @@
       }),
       FANG_BALANCED_ARSENAL: uniqueUpgrade("FANG_BALANCED_ARSENAL", FIGHTER_TYPES.FANG, {
         name: "BALANCED ARSENAL", category: "FIGHTER UNIQUE", icon: "F", maxLevel: 3, weight: 8, baseValue: 0.06, valueType: "dualPercent",
-        description: "主武装/ミサイル両方",
+        description: "主武装/通常ミサイル両方",
         rarityValues: { COMMON: 0.06, RARE: 0.09, EPIC: 0.13, LEGENDARY: 0.18 },
         apply({ effectiveValue }) {
           runProgress.fighterUniqueDamageMultiplier *= 1 + effectiveValue;
@@ -2274,22 +2269,21 @@
 
       PHANTOM_LOCK: uniqueUpgrade("PHANTOM_LOCK", FIGHTER_TYPES.PHANTOM, {
         name: "PHANTOM LOCK", category: "FIGHTER UNIQUE", icon: "P", maxLevel: 3, weight: 8, valueType: "phantomLock",
-        description: "ロック性能",
+        description: "通常ミサイルロック性能",
         rarityValues: {
-          COMMON: { missile: 1, numberNine: 2, lockTime: 0.08 },
-          RARE: { missile: 1, numberNine: 3, lockTime: 0.12 },
-          EPIC: { missile: 2, numberNine: 4, lockTime: 0.17 },
-          LEGENDARY: { missile: 2, numberNine: 6, lockTime: 0.24 }
+          COMMON: { missile: 1, lockTime: 0.08 },
+          RARE: { missile: 1, lockTime: 0.12 },
+          EPIC: { missile: 2, lockTime: 0.17 },
+          LEGENDARY: { missile: 2, lockTime: 0.24 }
         },
         apply({ effectiveValue }) {
           runProgress.fighterUniqueLockBonus += effectiveValue.missile;
-          runProgress.fighterUniqueNumberNineLockBonus += effectiveValue.numberNine;
           runProgress.fighterUniqueLockTimeMultiplier = Math.max(0.55, runProgress.fighterUniqueLockTimeMultiplier * (1 - effectiveValue.lockTime));
         }
       }),
       PHANTOM_SPECIAL_WEAPON_CORE: uniqueUpgrade("PHANTOM_SPECIAL_WEAPON_CORE", FIGHTER_TYPES.PHANTOM, {
-        name: "SPECIAL WEAPON CORE", category: "FIGHTER UNIQUE", icon: "P", maxLevel: 3, weight: 8, valueType: "specialCore",
-        description: "PLASMA/NUMBER 9強化",
+        name: "PLASMA CORE", category: "FIGHTER UNIQUE", icon: "P", maxLevel: 3, weight: 8, valueType: "specialCore",
+        description: "PLASMA威力/爆発範囲",
         rarityValues: {
           COMMON: { damage: 0.07, radius: 0.05 },
           RARE: { damage: 0.11, radius: 0.08 },
@@ -2298,14 +2292,12 @@
         },
         apply({ effectiveValue }) {
           runProgress.fighterUniquePlasmaDamageMultiplier *= 1 + effectiveValue.damage;
-          runProgress.fighterUniqueNumberNineDamageMultiplier *= 1 + effectiveValue.damage;
           runProgress.fighterUniquePlasmaRadiusMultiplier *= 1 + effectiveValue.radius;
-          runProgress.fighterUniqueNumberNineTurnMultiplier = Math.min(1.25, runProgress.fighterUniqueNumberNineTurnMultiplier + effectiveValue.radius * 0.35);
         }
       }),
       PHANTOM_GHOST_RELOAD: uniqueUpgrade("PHANTOM_GHOST_RELOAD", FIGHTER_TYPES.PHANTOM, {
         name: "GHOST RELOAD", category: "FIGHTER UNIQUE", icon: "P", maxLevel: 3, weight: 7, valueType: "percent",
-        description: "特殊兵装リロード短縮",
+        description: "通常ミサイル/NUMBER 9リロード短縮",
         rarityValues: { COMMON: 0.07, RARE: 0.11, EPIC: 0.16, LEGENDARY: 0.22 },
         apply({ effectiveValue }) {
           runProgress.missileReloadMultiplier = Math.max(0.38, runProgress.missileReloadMultiplier * (1 - effectiveValue));
@@ -2314,7 +2306,7 @@
       }),
       PHANTOM_OVERLOCK: uniqueUpgrade("PHANTOM_OVERLOCK", FIGHTER_TYPES.PHANTOM, {
         name: "OVERLOCK", category: "FIGHTER UNIQUE", icon: "P", maxLevel: 3, weight: 7, valueType: "percent",
-        description: "複数ロック時ダメージ",
+        description: "通常ミサイル複数ロック時ダメージ",
         rarityValues: { COMMON: 0.08, RARE: 0.12, EPIC: 0.18, LEGENDARY: 0.25 },
         apply({ effectiveValue }) { runProgress.fighterUniqueOverlockMax = Math.min(0.48, runProgress.fighterUniqueOverlockMax + effectiveValue); }
       })
@@ -2801,23 +2793,24 @@ let hitStopScale = 0.16;
     }
 
     function getMissileDamage(baseDamage = 3, options = {}) {
+      if (options.numberNine) {
+        return baseDamage * (getFighterData().missileDamageMultiplier || 1);
+      }
       let multiplier = (getFighterData().missileDamageMultiplier || 1)
         * (runProgress.missileDamageMultiplier || 1)
         * (runProgress.fighterUniqueMissileDamageMultiplier || 1);
       if (player.fighterType === FIGHTER_TYPES.BUSTER && isLastStandActive()) {
         multiplier *= 1 + (runProgress.fighterUniqueLastStandDamage || 0);
       }
-      if (options.numberNine) multiplier *= runProgress.fighterUniqueNumberNineDamageMultiplier || 1;
       multiplier *= getOverlockDamageMultiplier(options.lockCount || 0);
       return baseDamage * multiplier;
     }
 
     function getMissileLockCount(baseCount) {
       const fighterLocks = Math.round(baseCount * (getFighterData().missileLockMultiplier || 1));
-      const bonusLocks = baseCount > 2
-        ? runProgress.numberNineLockBonus + runProgress.fighterUniqueNumberNineLockBonus
-        : runProgress.missileLockBonus + runProgress.fighterUniqueLockBonus;
-      const cap = baseCount > 2 ? 32 : 10;
+      if (baseCount > 2) return Math.max(1, fighterLocks);
+      const bonusLocks = runProgress.missileLockBonus + runProgress.fighterUniqueLockBonus;
+      const cap = 10;
       return Math.min(cap, Math.max(1, fighterLocks + bonusLocks));
     }
 
@@ -2912,8 +2905,9 @@ let hitStopScale = 0.16;
         if (isFortressModeActive()) lines.push("FORTRESS MODE");
         if (isLastStandActive()) lines.push("LAST STAND");
       }
-      if (player.fighterType === FIGHTER_TYPES.PHANTOM && player.numberNineLocks?.length >= 2 && runProgress.fighterUniqueOverlockMax > 0) {
-        lines.push("OVERLOCK");
+      if (player.fighterType === FIGHTER_TYPES.PHANTOM && runProgress.fighterUniqueOverlockMax > 0 && !player.specialWeapon) {
+        const normalMissileLocks = findMissileTargets(getMissileLockCount(2)).length;
+        if (normalMissileLocks >= 2) lines.push("OVERLOCK");
       }
       return lines.slice(0, 3);
     }
@@ -3181,10 +3175,10 @@ let hitStopScale = 0.16;
       if (upgrade.rarityValues) return upgrade.rarityValues[id] || upgrade.rarityValues.COMMON;
       if (upgrade.id === "EXTRA_LOCK") {
         const values = {
-          COMMON: { missile: 1, numberNine: 2 },
-          RARE: { missile: 2, numberNine: 3 },
-          EPIC: { missile: 3, numberNine: 5 },
-          LEGENDARY: { missile: 4, numberNine: 7 }
+          COMMON: { missile: 1 },
+          RARE: { missile: 2 },
+          EPIC: { missile: 3 },
+          LEGENDARY: { missile: 4 }
         };
         return values[id] || values.COMMON;
       }
@@ -3206,7 +3200,7 @@ let hitStopScale = 0.16;
 
     function formatUpgradeValue(upgrade, value) {
       if (upgrade.valueType === "twinFang") return `主武装 +${formatPercent(value.damage)}<br>弾サイズ +${formatPercent(value.bulletScale)}`;
-      if (upgrade.valueType === "dualPercent") return `主武装 +${formatPercent(value)}<br>ミサイル +${formatPercent(value)}`;
+      if (upgrade.valueType === "dualPercent") return `主武装 +${formatPercent(value)}<br>通常ミサイル +${formatPercent(value)}`;
       if (upgrade.valueType === "comboAce") return `コンボ時間 +${formatPercent(value.comboTime)}<br>10/20/30 COMBO火力上昇`;
       if (upgrade.valueType === "repairPercent") return `最大HPの${formatPercent(value)}回復`;
       if (upgrade.valueType === "rollAssault") return `${value.duration.toFixed(1)}s<br>火力 +${formatPercent(value.damage)} / 連射 +${formatPercent(value.fireRate)}`;
@@ -3215,9 +3209,9 @@ let hitStopScale = 0.16;
       if (upgrade.valueType === "reactiveArmor") return `${value.duration.toFixed(1)}s<br>追加軽減 +${formatPercent(value.reduction)}`;
       if (upgrade.valueType === "fortress") return `中央時 火力 +${formatPercent(value.damage)}<br>軽減 +${formatPercent(value.reduction)}`;
       if (upgrade.valueType === "lastStand") return `低HP時 火力 +${formatPercent(value.damage)}<br>軽減 +${formatPercent(value.reduction)}`;
-      if (upgrade.valueType === "phantomLock") return `通常ミサイル +${value.missile}<br>NUMBER 9 +${value.numberNine}<br>ロック時間 -${formatPercent(value.lockTime)}`;
-      if (upgrade.valueType === "specialCore") return `PLASMA/N9 +${formatPercent(value.damage)}<br>PLASMA範囲 +${formatPercent(value.radius)}`;
-      if (upgrade.valueType === "lock") return `通常ミサイル +${value.missile}<br>NUMBER 9 +${value.numberNine}`;
+      if (upgrade.valueType === "phantomLock") return `通常ミサイル +${value.missile}<br>ロック時間 -${formatPercent(value.lockTime)}`;
+      if (upgrade.valueType === "specialCore") return `PLASMAダメージ +${formatPercent(value.damage)}<br>PLASMA範囲 +${formatPercent(value.radius)}`;
+      if (upgrade.valueType === "lock") return `通常ミサイル最大ロック +${value.missile}`;
       if (upgrade.valueType === "hp") return `最大HP +${value}<br>現在HP +${value}回復`;
       if (upgrade.valueType === "shieldTime") return `完全防御シールド ${value}s`;
       return `+${formatPercent(value)}`;
@@ -3232,9 +3226,9 @@ let hitStopScale = 0.16;
       if (upgrade.id === "RAPID_FIRE") return `主武装連射 ${formatMultiplier(runProgress.fireRateMultiplier)} → ${formatMultiplier(runProgress.fireRateMultiplier * (1 + value))}`;
       if (upgrade.id === "BULLET_SPEED") return `弾速 ${formatMultiplier(runProgress.bulletSpeedMultiplier)} → ${formatMultiplier(runProgress.bulletSpeedMultiplier * (1 + value))}`;
       if (upgrade.id === "CRITICAL_HIT") return `会心率 ${formatPercent(runProgress.criticalChance)} → ${formatPercent(Math.min(0.6, runProgress.criticalChance + value))}`;
-      if (upgrade.id === "MISSILE_POWER") return `ミサイルダメージ ${formatMultiplier(runProgress.missileDamageMultiplier)} → ${formatMultiplier(runProgress.missileDamageMultiplier * (1 + value))}`;
+      if (upgrade.id === "MISSILE_POWER") return `通常ミサイルダメージ ${formatMultiplier(runProgress.missileDamageMultiplier)} → ${formatMultiplier(runProgress.missileDamageMultiplier * (1 + value))}`;
       if (upgrade.id === "FAST_RELOAD") return `リロード倍率 ${formatMultiplier(runProgress.missileReloadMultiplier)} → ${formatMultiplier(Math.max(0.42, runProgress.missileReloadMultiplier * (1 - Math.min(0.35, value))))}`;
-      if (upgrade.id === "EXTRA_LOCK") return `追加ロック +${runProgress.missileLockBonus} / N9 +${runProgress.numberNineLockBonus} → +${runProgress.missileLockBonus + value.missile} / N9 +${runProgress.numberNineLockBonus + value.numberNine}`;
+      if (upgrade.id === "EXTRA_LOCK") return `通常ミサイルロック +${runProgress.missileLockBonus} → +${runProgress.missileLockBonus + value.missile}`;
       if (upgrade.id === "BLAST_RADIUS") return `爆発範囲 ${formatMultiplier(runProgress.missileExplosionMultiplier)} → ${formatMultiplier(runProgress.missileExplosionMultiplier * (1 + value))}`;
       if (upgrade.id === "THRUSTER_BOOST") return `移動速度 ${formatMultiplier(runProgress.moveSpeedMultiplier)} → ${formatMultiplier(runProgress.moveSpeedMultiplier * (1 + value))}`;
       if (upgrade.id === "ROLL_RECOVERY") return `ロール再使用 ${formatMultiplier(runProgress.rollCooldownMultiplier)} → ${formatMultiplier(Math.max(0.42, runProgress.rollCooldownMultiplier * (1 - Math.min(0.38, value))))}`;
@@ -3397,8 +3391,7 @@ let hitStopScale = 0.16;
       if (!upgrade || !stat || stat.level <= 0) return "";
       if (upgrade.valueType === "lock") {
         const missile = stat.values.reduce((sum, value) => sum + value.missile, 0);
-        const numberNine = stat.values.reduce((sum, value) => sum + value.numberNine, 0);
-        return `+${missile} / N9 +${numberNine}`;
+        return `MISSILE LOCK +${missile}`;
       }
       if (upgrade.valueType === "hp") return `+${stat.totalValue}`;
       if (upgrade.valueType === "shieldTime") {
@@ -3410,7 +3403,7 @@ let hitStopScale = 0.16;
         return `${durations}<br>${state}`;
       }
       if (upgrade.valueType === "twinFang") return stat.values.map((value) => `+${formatPercent(value.damage)}`).join(" / ");
-      if (upgrade.valueType === "dualPercent") return `主武装/ミサイル +${formatPercent(stat.values.reduce((sum, value) => sum + value, 0))}`;
+      if (upgrade.valueType === "dualPercent") return `主武装/通常ミサイル +${formatPercent(stat.values.reduce((sum, value) => sum + value, 0))}`;
       if (upgrade.valueType === "comboAce") return `コンボ時間/火力 Lv${stat.level}`;
       if (upgrade.valueType === "repairPercent") return `回復 ${formatPercent(stat.values.reduce((sum, value) => sum + value, 0))}`;
       if (upgrade.valueType === "rollAssault") {
@@ -3425,8 +3418,8 @@ let hitStopScale = 0.16;
       }
       if (upgrade.valueType === "fortress") return `中央時 ${isFortressModeActive() ? "ACTIVE" : "INACTIVE"}`;
       if (upgrade.valueType === "lastStand") return `低HP時 ${isLastStandActive() ? "ACTIVE" : "INACTIVE"}`;
-      if (upgrade.valueType === "phantomLock") return `+${runProgress.fighterUniqueLockBonus} / N9 +${runProgress.fighterUniqueNumberNineLockBonus}`;
-      if (upgrade.valueType === "specialCore") return `PLASMA/N9 Lv${stat.level}`;
+      if (upgrade.valueType === "phantomLock") return `MISSILE LOCK +${runProgress.fighterUniqueLockBonus}`;
+      if (upgrade.valueType === "specialCore") return `PLASMA Lv${stat.level}`;
       return `+${formatPercent(stat.totalValue)}`;
     }
 
@@ -6187,7 +6180,7 @@ let hitStopScale = 0.16;
       orb.userData.target = target;
       orb.userData.life = 3.2;
       orb.userData.speed = weapon.bulletSpeed;
-      orb.userData.turnRate = (3.8 + index * 0.08) * (runProgress.fighterUniqueNumberNineTurnMultiplier || 1);
+      orb.userData.turnRate = 3.8 + index * 0.08;
       orb.userData.phase = index * 0.72;
       orb.userData.index = index;
       orb.userData.launchDelay = index * (weapon.launchInterval || 0.075);
