@@ -2389,6 +2389,11 @@
       display: block;
     }
 
+    .mobileRightRail,
+    .mobileRightLower {
+      display: contents;
+    }
+
     .mobileDpad {
       --dpad-key: clamp(48px, 13vh, 68px);
       position: absolute;
@@ -2527,6 +2532,141 @@
       min-width: clamp(92px, 17vw, 132px);
       padding: 7px 8px;
       font-size: clamp(9px, 1.8vw, 12px);
+    }
+
+    @media (orientation: landscape) {
+      body.mobileEdition {
+        --mobile-rail-width: clamp(104px, 16vw, 132px);
+      }
+
+      .mobileRightRail {
+        position: absolute;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        bottom: max(10px, env(safe-area-inset-bottom));
+        display: flex;
+        width: var(--mobile-rail-width);
+        flex-direction: column;
+        pointer-events: none;
+      }
+
+      .mobileRightLower {
+        display: grid;
+        gap: 8px;
+        width: 100%;
+        margin-top: auto;
+        pointer-events: none;
+      }
+
+      body.mobileEdition #rightHud {
+        position: static;
+        width: 100%;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      body.mobileEdition #rightHud .badge,
+      body.mobileEdition #pauseButton {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+      }
+
+      body.mobileEdition #rollHud {
+        position: static;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+      }
+
+      body.mobileEdition .mobileActionStack {
+        position: static;
+        width: 100%;
+        gap: 8px;
+      }
+
+      body.mobileEdition .mobileActionButton {
+        box-sizing: border-box;
+        width: 100%;
+      }
+
+      body.mobileEdition #comboHud {
+        position: static;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        padding: 6px 7px;
+        transform: none;
+        border-color: rgba(255, 214, 90, 0.3);
+        background: rgba(6, 15, 30, 0.38);
+        backdrop-filter: blur(5px);
+      }
+
+      body.mobileEdition #comboHud.visible {
+        transform: none;
+        animation: mobileComboPulse 180ms ease-out;
+      }
+
+      body.mobileEdition #comboCount {
+        font-size: clamp(14px, 2.2vw, 21px);
+        line-height: 1;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      body.mobileEdition #comboMultiplier {
+        margin-top: 2px;
+        font-size: clamp(8px, 2.3dvh, 11px);
+        white-space: nowrap;
+      }
+
+      body.mobileEdition #comboTitle {
+        min-height: 0;
+        margin-top: 2px;
+        font-size: clamp(7px, 2dvh, 10px);
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      body.mobileEdition #hud.boss-active #comboHud {
+        top: auto;
+      }
+
+      body.mobileEdition #partAlert.critical {
+        left: auto;
+        right: calc(max(10px, env(safe-area-inset-right)) + var(--mobile-rail-width) + 10px);
+        top: clamp(62px, 20dvh, 104px);
+        min-width: 0;
+        max-width: min(150px, 24vw);
+        padding: 4px 8px;
+        transform: none;
+        border-color: rgba(255, 214, 90, 0.42);
+        background: rgba(18, 16, 20, 0.38);
+        font-size: clamp(9px, 2.7dvh, 13px);
+        line-height: 1;
+        backdrop-filter: blur(5px);
+      }
+
+      body.mobileEdition #partAlert.critical.visible,
+      body.mobileEdition #hud.boss-active #partAlert.critical {
+        top: clamp(62px, 20dvh, 104px);
+        transform: none;
+        animation: mobileCriticalPop 480ms ease-out both;
+      }
+    }
+
+    @keyframes mobileComboPulse {
+      0% { transform: scale(0.92); }
+      65% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes mobileCriticalPop {
+      0% { opacity: 0; transform: translateY(4px) scale(0.9); }
+      22% { opacity: 1; transform: translateY(0) scale(1.03); }
+      72% { opacity: 0.92; transform: translateY(-2px) scale(1); }
+      100% { opacity: 0; transform: translateY(-7px) scale(0.98); }
     }
 
     @media (orientation: landscape) and (max-height: 600px) {
@@ -2833,16 +2973,24 @@
         margin: 3px 0;
       }
 
-      #rightHud {
+      body.mobileEdition {
+        --mobile-rail-width: clamp(92px, 15vw, 116px);
+      }
+
+      .mobileRightRail {
         top: max(8px, env(safe-area-inset-top));
         right: max(8px, env(safe-area-inset-right));
-        bottom: auto;
-        gap: 4px;
+        bottom: max(8px, env(safe-area-inset-bottom));
+      }
+
+      .mobileRightLower,
+      #rightHud,
+      .mobileActionStack {
+        gap: 8px;
       }
 
       .badge,
       #pauseButton {
-        min-width: clamp(92px, 15vw, 116px);
         padding: 6px 8px;
         font-size: 9px;
       }
@@ -2853,10 +3001,32 @@
         padding: 7px 10px;
       }
 
-      #comboHud {
-        top: max(8px, env(safe-area-inset-top));
-        min-width: 150px;
-        padding: 6px 10px;
+      body.mobileEdition #comboHud {
+        padding: 4px 6px;
+      }
+
+      body.mobileEdition #rollHud {
+        padding: 5px 6px;
+        font-size: clamp(8px, 2.5dvh, 10px);
+      }
+
+      body.mobileEdition .mobileActionStack {
+        --action-width: 100%;
+        --action-height: clamp(46px, 14dvh, 64px);
+      }
+
+      body.mobileEdition .mobileActionButton {
+        min-height: var(--action-height);
+        padding: 5px 6px;
+      }
+
+      body.mobileEdition .mobileControlLabel {
+        font-size: clamp(11px, 3.8dvh, 15px);
+      }
+
+      body.mobileEdition .mobileControlStatus {
+        margin-top: 4px;
+        font-size: clamp(7px, 2.2dvh, 9px);
       }
 
       #numberNineReload {
@@ -2895,12 +3065,6 @@
       </div>
     </div>
 
-    <div id="rightHud">
-      <div class="badge" id="weaponBadge">MAIN WEAPON<br>VULCAN</div>
-      <div class="badge" id="statusBadge">STAGE 1</div>
-      <button id="pauseButton" type="button">PAUSE</button>
-    </div>
-
     <div id="crosshair" aria-hidden="true"></div>
     <div id="bossHud" aria-live="polite">
       <span id="bossName">DREADNOUGHT</span>
@@ -2916,7 +3080,6 @@
       <span>RELOAD</span>
       <div id="numberNineReloadOuter"><div id="numberNineReloadBar"></div></div>
     </div>
-    <div id="rollHud">ROLL READY</div>
     <button id="missileButton" type="button">MISSILE READY [E]</button>
     <div id="mobileControls" aria-label="タッチ操作">
       <div class="mobileDpad" aria-label="方向キー">
@@ -2925,21 +3088,31 @@
         <button class="mobileDpadButton" type="button" data-mobile-direction="right" aria-label="右へ移動">&#8594;</button>
         <button class="mobileDpadButton" type="button" data-mobile-direction="down" aria-label="下へ移動">&#8595;</button>
       </div>
-      <div class="mobileActionStack" aria-label="武器操作">
-        <button id="mobileVulcanButton" class="mobileActionButton primary" type="button" aria-label="主武装を連射">
-          <span id="mobileVulcanLabel" class="mobileControlLabel">VULCAN</span>
-          <span class="mobileControlStatus">HOLD TO FIRE</span>
-        </button>
-        <button id="mobileMissileButton" class="mobileActionButton" type="button" aria-label="ミサイルを発射">
-          <span class="mobileControlLabel">MISSILE</span>
-          <span id="mobileMissileStatus" class="mobileControlStatus">READY</span>
-        </button>
+      <div class="mobileRightRail">
+        <div id="rightHud">
+          <div class="badge" id="weaponBadge">MAIN WEAPON<br>VULCAN</div>
+          <div class="badge" id="statusBadge">STAGE 1</div>
+          <button id="pauseButton" type="button">PAUSE</button>
+        </div>
+        <div class="mobileRightLower">
+          <div id="comboHud" aria-live="polite">
+            <span id="comboCount">2 COMBO</span>
+            <span id="comboMultiplier">SCORE ×1.1</span>
+            <span id="comboTitle"></span>
+          </div>
+          <div id="rollHud">ROLL READY</div>
+          <div class="mobileActionStack" aria-label="武器操作">
+            <button id="mobileVulcanButton" class="mobileActionButton primary" type="button" aria-label="主武装を連射">
+              <span id="mobileVulcanLabel" class="mobileControlLabel">VULCAN</span>
+              <span class="mobileControlStatus">HOLD TO FIRE</span>
+            </button>
+            <button id="mobileMissileButton" class="mobileActionButton" type="button" aria-label="ミサイルを発射">
+              <span class="mobileControlLabel">MISSILE</span>
+              <span id="mobileMissileStatus" class="mobileControlStatus">READY</span>
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-    <div id="comboHud" aria-live="polite">
-      <span id="comboCount">2 COMBO</span>
-      <span id="comboMultiplier">SCORE ×1.1</span>
-      <span id="comboTitle"></span>
     </div>
   </div>
 
@@ -15037,9 +15210,10 @@ let pendingRankingRecord = null;
     }
 
     function showPartMessage(message, duration = 0.75) {
+      const isCritical = message === "CRITICAL HIT";
       hud.partAlert.textContent = message;
-      hud.partAlert.className = "visible";
-      partAlertTimer = duration;
+      hud.partAlert.className = isCritical ? "visible critical" : "visible";
+      partAlertTimer = isCritical ? Math.min(duration, 0.5) : duration;
     }
 
     function updateEnemyPartVisuals(enemy, dt) {
