@@ -931,6 +931,32 @@
       transform: translateX(-50%) scale(1);
     }
 
+    .partAlertHeading,
+    .partAlertName,
+    .partAlertRemaining {
+      display: block;
+    }
+
+    .partAlertHeading {
+      color: var(--yellow);
+      font-size: 0.72em;
+      line-height: 1;
+    }
+
+    .partAlertName {
+      margin-top: 3px;
+      color: #ffffff;
+      font-size: 1em;
+      line-height: 1.05;
+    }
+
+    .partAlertRemaining {
+      margin-top: 3px;
+      color: var(--cyan);
+      font-size: 0.62em;
+      line-height: 1;
+    }
+
     #hud.boss-active #partAlert {
       top: calc(max(14px, env(safe-area-inset-top)) + 224px);
     }
@@ -2521,11 +2547,6 @@
       pointer-events: auto;
     }
 
-    .mobileActionButton.primary {
-      border-color: rgba(88, 230, 255, 0.7);
-      background: rgba(5, 36, 62, 0.58);
-    }
-
     .mobileActionButton.ready {
       border-color: rgba(255, 214, 90, 0.76);
       color: #fff2b0;
@@ -2695,6 +2716,28 @@
         transform: none;
         animation: mobileCriticalPop 480ms ease-out both;
       }
+
+      body.mobileEdition #partAlert.part-destroyed {
+        left: auto;
+        right: calc(max(10px, env(safe-area-inset-right)) + var(--mobile-rail-width) + 10px);
+        top: clamp(136px, 36dvh, 150px);
+        box-sizing: border-box;
+        width: min(176px, 26vw);
+        min-width: 0;
+        padding: 6px 9px;
+        transform: none;
+        border-color: rgba(255, 214, 90, 0.42);
+        background: rgba(6, 15, 30, 0.46);
+        font-size: clamp(10px, 2.8dvh, 14px);
+        backdrop-filter: blur(6px);
+      }
+
+      body.mobileEdition #partAlert.part-destroyed.visible,
+      body.mobileEdition #hud.boss-active #partAlert.part-destroyed {
+        top: clamp(136px, 36dvh, 150px);
+        transform: none;
+        animation: mobilePartNotice 650ms ease-out both;
+      }
     }
 
     @keyframes mobileComboPulse {
@@ -2708,6 +2751,13 @@
       22% { opacity: 1; transform: translateY(0) scale(1.03); }
       72% { opacity: 0.92; transform: translateY(-2px) scale(1); }
       100% { opacity: 0; transform: translateY(-7px) scale(0.98); }
+    }
+
+    @keyframes mobilePartNotice {
+      0% { opacity: 0; transform: translateY(-5px) scale(0.96); }
+      16% { opacity: 1; transform: translateY(0) scale(1); }
+      72% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-5px) scale(0.98); }
     }
 
     @media (orientation: landscape) and (max-height: 600px) {
@@ -3053,7 +3103,7 @@
 
       body.mobileEdition .mobileActionStack {
         --action-width: 100%;
-        --action-height: clamp(46px, 14dvh, 64px);
+        --action-height: clamp(58px, 18dvh, 78px);
       }
 
       body.mobileEdition .mobileActionButton {
@@ -3146,10 +3196,6 @@
           </div>
           <div id="rollHud">ROLL READY</div>
           <div class="mobileActionStack" aria-label="武器操作">
-            <button id="mobileVulcanButton" class="mobileActionButton primary" type="button" aria-label="主武装を連射">
-              <span id="mobileVulcanLabel" class="mobileControlLabel">VULCAN</span>
-              <span class="mobileControlStatus">HOLD TO FIRE</span>
-            </button>
             <button id="mobileMissileButton" class="mobileActionButton" type="button" aria-label="ミサイルを発射">
               <span class="mobileControlLabel">MISSILE</span>
               <span id="mobileMissileStatus" class="mobileControlStatus">READY</span>
@@ -3754,8 +3800,6 @@
       mobileControls: document.getElementById("mobileControls"),
       mobileJoystick: document.getElementById("mobileJoystick"),
       mobileJoystickKnob: document.getElementById("mobileJoystickKnob"),
-      mobileVulcanButton: document.getElementById("mobileVulcanButton"),
-      mobileVulcanLabel: document.getElementById("mobileVulcanLabel"),
       mobileMissileButton: document.getElementById("mobileMissileButton"),
       mobileMissileStatus: document.getElementById("mobileMissileStatus"),
       combo: document.getElementById("comboHud"),
@@ -4791,8 +4835,6 @@ let running = false;
       joystickX: 0,
       joystickY: 0,
       joystickMagnitude: 0,
-      firePointerId: null,
-      fireHeld: false
     };
 let nextWeaponContainerKill = 10;
 let bossWeaponContainerTimer = 0;
@@ -6890,19 +6932,26 @@ let pendingRankingRecord = null;
       );
     }
 
+    function shouldMobileAutoFireMainWeapon() {
+      return Boolean(
+        isMobileGameplayActive() &&
+        player.hp > 0 &&
+        !stage.transitioning &&
+        stage.bossIntroTimer <= 0 &&
+        player.weaponRouletteTimer <= 0
+      );
+    }
+
     function resetMobileInput() {
       mobileInput.joystickPointerId = null;
       mobileInput.joystickX = 0;
       mobileInput.joystickY = 0;
       mobileInput.joystickMagnitude = 0;
-      mobileInput.firePointerId = null;
-      mobileInput.fireHeld = false;
       dragPointerId = null;
       dragging = false;
       hud.mobileJoystick?.classList.remove("active");
       hud.mobileJoystick?.style.setProperty("--stick-x", "0px");
       hud.mobileJoystick?.style.setProperty("--stick-y", "0px");
-      hud.mobileVulcanButton?.classList.remove("pressed");
       hud.mobileMissileButton?.classList.remove("pressed");
     }
 
@@ -6949,29 +6998,6 @@ let pendingRankingRecord = null;
       hud.mobileJoystick?.style.setProperty("--stick-y", "0px");
     }
 
-    function bindMobileHoldButton(button, onPress, onRelease) {
-      if (!button) return;
-      button.addEventListener("pointerdown", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        button.setPointerCapture(event.pointerId);
-        button.classList.add("pressed");
-        onPress(event.pointerId);
-      });
-      const release = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        button.classList.remove("pressed");
-        onRelease(event.pointerId);
-      };
-      button.addEventListener("pointerup", release);
-      button.addEventListener("pointercancel", release);
-      button.addEventListener("lostpointercapture", (event) => {
-        button.classList.remove("pressed");
-        onRelease(event.pointerId);
-      });
-    }
-
     function initMobileInput() {
       hud.mobileJoystick?.addEventListener("pointerdown", (event) => {
         event.preventDefault();
@@ -6991,19 +7017,6 @@ let pendingRankingRecord = null;
       hud.mobileJoystick?.addEventListener("pointerup", releaseMobileJoystick);
       hud.mobileJoystick?.addEventListener("pointercancel", releaseMobileJoystick);
       hud.mobileJoystick?.addEventListener("lostpointercapture", releaseMobileJoystick);
-      bindMobileHoldButton(
-        hud.mobileVulcanButton,
-        (pointerId) => {
-          if (!isMobileGameplayActive()) return;
-          mobileInput.firePointerId = pointerId;
-          mobileInput.fireHeld = true;
-        },
-        (pointerId) => {
-          if (mobileInput.firePointerId !== pointerId) return;
-          mobileInput.firePointerId = null;
-          mobileInput.fireHeld = false;
-        }
-      );
       hud.mobileMissileButton?.addEventListener("pointerdown", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -9458,7 +9471,7 @@ let pendingRankingRecord = null;
       }
       updateFighterUniqueTimers(dt);
       updateLevelHud();
-      if (player.fireHeld || mobileInput.fireHeld) fireVulcan();
+      if (player.fireHeld || shouldMobileAutoFireMainWeapon()) fireVulcan();
 
       updatePlayerTransform(dt);
       updateAsteroidField(dt);
@@ -15219,13 +15232,19 @@ let pendingRankingRecord = null;
       if (partName === "leftWing" || partName === "rightWing") {
         detachEnemyWing(enemy, partName);
         spawnPartBreakEffect(position, partName);
-        showPartMessage(ENEMY_PART_DATA[partName].label, 0.75);
+        showPartMessage(ENEMY_PART_DATA[partName].label, 0.75, {
+          partDestroyed: true,
+          remaining: getRemainingEnemyPartCount(enemy)
+        });
       } else if (partName === "engine") {
         part.object.visible = false;
         if (enemy.engineGlow) enemy.engineGlow.visible = false;
         enemy.engineFailureTimer = Math.max(enemy.engineFailureTimer, 4.0);
         spawnPartBreakEffect(position, partName);
-        showPartMessage("ENGINE DESTROYED", 0.8);
+        showPartMessage("ENGINE DESTROYED", 0.8, {
+          partDestroyed: true,
+          remaining: getRemainingEnemyPartCount(enemy)
+        });
       } else if (partName === "cockpit") {
         part.object.visible = false;
         if (options.heatMelt) {
@@ -15321,8 +15340,27 @@ let pendingRankingRecord = null;
       }
     }
 
-    function showPartMessage(message, duration = 0.75) {
+    function getRemainingEnemyPartCount(enemy) {
+      return ["leftWing", "rightWing", "engine", "cockpit"]
+        .filter((partName) => enemy.parts[partName] && !enemy.parts[partName].destroyed)
+        .length;
+    }
+
+    function showPartMessage(message, duration = 0.75, options = {}) {
       const isCritical = message === "CRITICAL HIT";
+      const isPartDestroyed = options.partDestroyed || / DESTROYED$/.test(message);
+      if (isPartDestroyed) {
+        const partName = options.partName || message.replace(/ DESTROYED$/, "");
+        const remaining = Math.max(0, Number(options.remaining) || 0);
+        hud.partAlert.innerHTML = `
+          <span class="partAlertHeading">PART DESTROYED</span>
+          <strong class="partAlertName">${escapeHtml(partName)}</strong>
+          <span class="partAlertRemaining">${remaining} PART${remaining === 1 ? "" : "S"} REMAIN</span>
+        `;
+        hud.partAlert.className = "visible part-destroyed";
+        partAlertTimer = Math.min(duration, 0.65);
+        return;
+      }
       hud.partAlert.textContent = message;
       hud.partAlert.className = isCritical ? "visible critical" : "visible";
       partAlertTimer = isCritical ? Math.min(duration, 0.5) : duration;
@@ -15532,6 +15570,10 @@ let pendingRankingRecord = null;
       spawnExplosion(turret.group.getWorldPosition(new THREE.Vector3()));
       spawnEnemyDebris(turret.group.getWorldPosition(new THREE.Vector3()), turret.group.quaternion);
       playEnemyExplosionSound();
+      showPartMessage("TURRET DESTROYED", 0.75, {
+        partDestroyed: true,
+        remaining: boss.turrets.filter((item) => item.alive).length
+      });
       if (boss.turrets.every((item) => !item.alive)) {
         showCenterMessage("CORE SHIELD ACTIVE", "info", 1.4);
         spawnExplosion(boss.core.getWorldPosition(new THREE.Vector3()));
@@ -15556,7 +15598,10 @@ let pendingRankingRecord = null;
       registerComboKill();
       spawnExplosion(generator.group.getWorldPosition(new THREE.Vector3()));
       spawnEnemyDebris(generator.group.getWorldPosition(new THREE.Vector3()), generator.group.quaternion);
-      showCenterMessage("SHIELD GENERATOR DESTROYED", "info", 1.0);
+      showPartMessage("SHIELD GENERATOR DESTROYED", 0.75, {
+        partDestroyed: true,
+        remaining: boss.shieldGenerators.filter((item) => item.alive).length
+      });
 
       if (boss.shieldGenerators.every((item) => !item.alive)) {
         boss.shieldHp = 0;
@@ -16739,8 +16784,6 @@ let pendingRankingRecord = null;
         return;
       }
 
-      const weaponData = WEAPON_DATA[player.mainWeapon] || WEAPON_DATA.VULCAN;
-      hud.mobileVulcanLabel.textContent = weaponData.label;
       let missileStatus = "READY";
       let missileReady = false;
       let missileCooldown = false;
@@ -16785,7 +16828,7 @@ let pendingRankingRecord = null;
         else weaponClass += " active";
       } else if (player.droneWeaponTimer > 0 || player.droneHudFlash > 0) {
         weaponClass += " active";
-      } else if (player.fireHeld || mobileInput.fireHeld || player.weaponHudFlash > 0) {
+      } else if (player.fireHeld || shouldMobileAutoFireMainWeapon() || player.weaponHudFlash > 0) {
         weaponClass += " active";
       }
       hud.weapon.className = weaponClass;
