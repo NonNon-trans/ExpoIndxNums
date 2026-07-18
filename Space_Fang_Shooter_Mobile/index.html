@@ -2530,6 +2530,159 @@
     }
 
     @media (orientation: landscape) and (max-height: 600px) {
+      #levelUpOverlay {
+        display: grid;
+        place-items: stretch center;
+        height: 100vh;
+        height: 100dvh;
+        padding:
+          max(5px, env(safe-area-inset-top))
+          max(8px, env(safe-area-inset-right))
+          max(5px, env(safe-area-inset-bottom))
+          max(8px, env(safe-area-inset-left));
+        overflow: hidden;
+      }
+
+      #levelUpOverlay.hidden {
+        display: none;
+      }
+
+      .levelUpBox {
+        align-self: stretch;
+        width: min(1080px, 100%);
+        height: 100%;
+        min-height: 0;
+        max-height: none;
+        padding: clamp(7px, 2.2dvh, 13px) clamp(10px, 2.4vw, 20px);
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        overflow: hidden;
+        touch-action: none;
+      }
+
+      .levelUpBox h2 {
+        grid-row: 1;
+        margin: 0 0 clamp(1px, 0.6dvh, 4px);
+        font-size: clamp(24px, 8.2dvh, 38px);
+        line-height: 0.96;
+      }
+
+      .levelUpBox > p {
+        grid-row: 2;
+        margin: 0 0 clamp(5px, 1.6dvh, 10px);
+        font-size: clamp(10px, 3.3dvh, 14px);
+        line-height: 1;
+        letter-spacing: 0.08em;
+      }
+
+      #upgradeChoices {
+        grid-row: 4;
+        min-height: 0;
+        height: 100%;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+        gap: clamp(6px, 1.5vw, 12px);
+        overflow: hidden;
+      }
+
+      .upgradeCard {
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        padding: clamp(7px, 2dvh, 12px) clamp(8px, 1.5vw, 13px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .upgradeCard.selected {
+        transform: translateY(-1px) scale(1.01);
+      }
+
+      .upgradeRarity {
+        flex: 0 0 auto;
+        margin-bottom: clamp(3px, 1dvh, 6px);
+        font-size: clamp(8px, 2.6dvh, 11px);
+        line-height: 1;
+      }
+
+      .upgradeExclusive {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        margin: 0 0 clamp(3px, 0.8dvh, 5px);
+        padding: 2px 5px;
+        font-size: clamp(7px, 2.1dvh, 9px);
+      }
+
+      .upgradeName {
+        flex: 0 0 auto;
+        margin-bottom: clamp(3px, 0.9dvh, 6px);
+        font-size: clamp(14px, 4.6dvh, 20px);
+        line-height: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .upgradeCategory {
+        flex: 0 0 auto;
+        margin-bottom: clamp(4px, 1.1dvh, 7px);
+        font-size: clamp(8px, 2.5dvh, 11px);
+        line-height: 1;
+      }
+
+      .upgradeDescription {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding-right: 3px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: clamp(10px, 3.1dvh, 13px);
+        line-height: 1.25;
+        scrollbar-width: thin;
+        scrollbar-color: var(--rarity-color) rgba(255, 255, 255, 0.06);
+      }
+
+      .upgradeDescription::-webkit-scrollbar {
+        width: 3px;
+      }
+
+      .upgradeDescription::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: var(--rarity-color);
+      }
+
+      .upgradeLevel {
+        flex: 0 0 auto;
+        margin-top: clamp(4px, 1.2dvh, 8px);
+        font-size: clamp(9px, 2.7dvh, 12px);
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .upgradeDelta {
+        flex: 0 0 auto;
+        margin-top: clamp(3px, 0.9dvh, 6px);
+        font-size: clamp(8px, 2.3dvh, 10px);
+        line-height: 1.15;
+      }
+
+      .levelUpBox.acquired h2,
+      .levelUpBox.acquired > p {
+        display: none;
+      }
+
+      .levelUpBox.acquired .upgradeAcquired {
+        grid-row: 3;
+        margin: 0 0 6px;
+        font-size: clamp(14px, 4.5dvh, 21px);
+        line-height: 1.05;
+      }
+
       #overlay {
         padding: 8px;
       }
